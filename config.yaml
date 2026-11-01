@@ -1,4 +1,5 @@
-# Empathic Voice Companion Configuration
+# TUNDA — affect-aware voice companion configuration
+# Not a therapist / not emergency care. See README for honest scope.
 
 # Performance profile
 performance:
@@ -59,6 +60,7 @@ speech_recognition:
   vad_noise_percentile: 0.1
   initial_prompt: null
   condition_on_previous_text: true
+  denoise: true
 
 # Emotion Detection
 emotion_detection:
@@ -97,6 +99,10 @@ response_generation:
   lazy_load: false
   safety_enabled: true
   safety_confidence_threshold: 0.6
+  safety_region: "US"  # US, CA, UK, IE, AU, NZ, IN
+  safety_log_events: true
+  safety_log_user_text: false
+  safety_log_path: "logs/crisis_events.jsonl"
   crisis_message: "I'm really sorry you're feeling this way. You deserve support. If you are in immediate danger or thinking about harming yourself, please contact your local emergency number or a trusted person right now."
   empathy_styles:
     supportive: "Provide warm, encouraging responses that validate emotions"
@@ -104,6 +110,11 @@ response_generation:
     solution_focused: "Acknowledge emotions while gently guiding toward solutions"
     therapeutic: "Use CBT-inspired techniques for emotional support"
   default_style: "supportive"
+
+# Clinic trust
+clinic:
+  profile: "companion"  # companion | between_sessions | high_risk_watch
+  allow_web_profile_switch: true
 
 # Personality Settings
 personality:
@@ -125,10 +136,16 @@ text_to_speech:
   speaking_rate: 1.0
   pitch_adjustment: 0.0
   volume: 0.8
-  emotion_adaptive: false  # Disable for better compatibility
+  emotion_adaptive: true
+  barge_in: true
+  barge_in_min_chunks: 4
+  barge_in_energy_multiplier: 2.4
+  barge_in_grace_ms: 350
   lazy_load: false
   streaming: true
   stream_chunk_chars: 140
+  first_chunk_chars: 64
+  target_first_audio_ms: 800
   voice_mapping:
     happy: "default"
     sad: "default"
@@ -146,6 +163,9 @@ memory:
   retrieval_limit: 3
   save_conversations: true
   conversation_file: "data/conversations.json"
+  encrypt: true
+  require_consent: true
+  key_file: "data/.memory_key"
   max_items: 2000
   prune_to: 1500
   prune_strategy: "global"

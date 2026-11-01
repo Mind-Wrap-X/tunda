@@ -12,8 +12,15 @@ from ..utils.config import config
 from ..utils.performance import latency_manager
 from ..core.plugins import get_llm
 from .safety import SafetyGuard
+from .mode_router import InteractionModeRouter, mode_instructions
 from .empathy import EmpathyPatterns
 from .care_plans import CarePlanGenerator
+from .grounding import select_grounding
+from ..clinic.profiles import (
+    OFFLINE_CARE_MESSAGE,
+    ClinicProfile,
+    get_clinic_profile,
+)
 from ..emotion.detector import EmotionPrediction
 
 logger = logging.getLogger(__name__)
@@ -29,6 +36,7 @@ class ResponseContext:
     empathy_style: str
     user_preferences: Dict[str, Any]
     relevant_memories: List[Dict[str, Any]] = None
+    interaction_mode: str = "listen"
 
     def __post_init__(self):
         if self.relevant_memories is None:
@@ -44,6 +52,13 @@ class EmpathicResponse:
     confidence: float
     generation_time: float
     follow_up_suggested: bool
+    interaction_mode: str = "listen"
+    safety_tier: str = "none"
+    crisis_resources: Optional[Dict[str, str]] = None
+    grounding: Optional[Dict[str, Any]] = None
+    clinic_profile: str = "companion"
+    care_mode: bool = False
+    llm_online: bool = False
 
 
 class LLMProvider:
@@ -241,6 +256,7 @@ class EmpathicResponseGenerator:
         self.ask_about_day = config.get('personality.ask_about_day', True)
         self.offer_care_plans = config.get('personality.offer_care_plans', True)
         self.safety_guard = SafetyGuard()
+        self.mode_router = InteractionModeRouter()
         self.lazy_load = self.config.lazy_load or self.performance.lazy_load
         if not self.lazy_load:
             self._initialize_llm_provider()
@@ -282,7 +298,7 @@ class EmpathicResponseGenerator:
         try:
             if self.lazy_load and self.llm_provider is None:
                 self._initialize_llm_provider()
-            safety = self.safety_guard.assess(context.user_text)
+            safety = self._assess_safety(context)
             if safety.is_crisis:
                 return EmpathicResponse(
                     text=safety.response or "I'm here for you.",
@@ -290,18 +306,49 @@ class EmpathicResponseGenerator:
                     empathy_style=context.empathy_style,
                     confidence=max(context.confidence, safety.confidence),
                     generation_time=time.time() - start_time,
-                    follow_up_suggested=True
+                    follow_up_suggested=True,
+                    interaction_mode="escalate",
+                    safety_tier=safety.tier,
+                    crisis_resources=safety.resources or None,
                 )
+            self._apply_interaction_mode(context)
+            grounding_script = select_grounding(
+                context.user_text, context.emotion, context.interaction_mode
+            )
+            clinic = self._resolve_clinic_profile(context)
+            llm_online = self.is_llm_available()
+            if grounding_script:
+                return EmpathicResponse(
+                    text=grounding_script.spoken_text(),
+                    emotion_addressed=context.emotion,
+                    empathy_style=context.empathy_style,
+                    confidence=max(context.confidence, 0.85),
+                    generation_time=time.time() - start_time,
+                    follow_up_suggested=False,
+                    interaction_mode=context.interaction_mode,
+                    safety_tier=safety.tier,
+                    grounding=grounding_script.to_payload(),
+                    clinic_profile=clinic.profile_id,
+                    care_mode=clinic.care_mode,
+                    llm_online=llm_online,
+                )
+            if clinic.care_mode and not llm_online:
+                return self._offline_care_response(context, clinic, start_time, safety)
             # Get empathy pattern
             pattern = self.empathy_patterns.get_pattern(context.emotion, context.empathy_style)
             
-            if self.llm_provider and self.llm_provider.is_available():
-                response_text = self._generate_llm_response(context, pattern)
-            else:
+            if llm_online:
+                response_text = self._generate_llm_response(context, pattern, clinic)
+            elif clinic.allow_template_fallback:
                 response_text = self._generate_template_response(context, pattern)
+            else:
+                return self._offline_care_response(context, clinic, start_time, safety)
             
             generation_time = time.time() - start_time
             
+            if safety.support_note:
+                response_text = f"{response_text.rstrip()}{safety.support_note}"
+
             # Determine if follow-up is suggested
             follow_up_suggested = self._should_suggest_follow_up(context, response_text)
             
@@ -311,7 +358,13 @@ class EmpathicResponseGenerator:
                 empathy_style=context.empathy_style,
                 confidence=context.confidence,
                 generation_time=generation_time,
-                follow_up_suggested=follow_up_suggested
+                follow_up_suggested=follow_up_suggested,
+                interaction_mode=context.interaction_mode,
+                safety_tier=safety.tier,
+                crisis_resources=safety.resources if safety.support_note else None,
+                clinic_profile=clinic.profile_id,
+                care_mode=clinic.care_mode,
+                llm_online=llm_online,
             )
             
         except Exception as e:
@@ -326,20 +379,32 @@ class EmpathicResponseGenerator:
         try:
             if self.lazy_load and self.llm_provider is None:
                 self._initialize_llm_provider()
-            safety = self.safety_guard.assess(context.user_text)
+            safety = self._assess_safety(context)
             if safety.is_crisis:
                 yield safety.response or "I'm here for you."
+                return
+            self._apply_interaction_mode(context)
+            grounding_script = select_grounding(
+                context.user_text, context.emotion, context.interaction_mode
+            )
+            if grounding_script:
+                yield grounding_script.spoken_text()
+                return
+            clinic = self._resolve_clinic_profile(context)
+            llm_online = self.is_llm_available()
+            if clinic.care_mode and not llm_online:
+                yield OFFLINE_CARE_MESSAGE
                 return
             # Get empathy pattern
             pattern = self.empathy_patterns.get_pattern(context.emotion, context.empathy_style)
             
-            if self.llm_provider and self.llm_provider.is_available():
-                prompt = self._create_llm_prompt(context, pattern)
+            if llm_online:
+                prompt = self._create_llm_prompt(context, pattern, clinic)
                 yielded = False
                 for token in self.llm_provider.generate_response_stream(
                     prompt,
-                    temperature=self.config.temperature,
-                    max_tokens=self.config.max_tokens,
+                    temperature=clinic.temperature,
+                    max_tokens=clinic.max_tokens,
                     top_p=self.config.top_p,
                     repeat_penalty=self.config.repeat_penalty
                 ):
@@ -347,10 +412,13 @@ class EmpathicResponseGenerator:
                         yielded = True
                         yield token
                 if not yielded:
-                    yield self._generate_template_response(context, pattern)
-            else:
-                # Fallbck to template (yield full string at once)
+                    yield OFFLINE_CARE_MESSAGE if clinic.care_mode else self._generate_template_response(context, pattern)
+            elif clinic.allow_template_fallback:
                 yield self._generate_template_response(context, pattern)
+            else:
+                yield OFFLINE_CARE_MESSAGE
+            if safety.support_note:
+                yield safety.support_note
                 
         except Exception as e:
             logger.error(f"Streaming generation failed: {e}")
@@ -358,22 +426,22 @@ class EmpathicResponseGenerator:
         finally:
             latency_manager.observe("llm", (time.time() - start) * 1000.0)
     
-    def _generate_llm_response(self, context: ResponseContext, pattern: Optional[Any]) -> str:
+    def _generate_llm_response(self, context: ResponseContext, pattern: Optional[Any], clinic: Optional[ClinicProfile] = None) -> str:
         """Generate response using LLM."""
-        # Create prompt for LLM
-        prompt = self._create_llm_prompt(context, pattern)
+        clinic = clinic or self._resolve_clinic_profile(context)
+        prompt = self._create_llm_prompt(context, pattern, clinic)
         
-        # Generate response
         response = self.llm_provider.generate_response(
             prompt,
-            temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
+            temperature=clinic.temperature,
+            max_tokens=clinic.max_tokens,
             top_p=self.config.top_p,
             repeat_penalty=self.config.repeat_penalty
         )
         
         if not response:
-            # Fall back to template if LLM fails
+            if clinic.care_mode or not clinic.allow_template_fallback:
+                return OFFLINE_CARE_MESSAGE
             return self._generate_template_response(context, pattern)
         
         # Clean up response
@@ -381,16 +449,15 @@ class EmpathicResponseGenerator:
         
         return response
     
-    def _create_llm_prompt(self, context: ResponseContext, pattern: Optional[Any]) -> str:
+    def _create_llm_prompt(self, context: ResponseContext, pattern: Optional[Any], clinic: Optional[ClinicProfile] = None) -> str:
         """Create prompt for LLM generation."""
-        # Get empathy style description
+        clinic = clinic or self._resolve_clinic_profile(context)
+        # User-supplied system prompts are ignored in every profile.
         style_description = self.config.empathy_styles.get(
             context.empathy_style, 
             "Provide supportive and understanding responses"
         )
-        personality_traits = config.get('personality.personality_traits', [])
         personality_name = config.get('personality.name', 'Tunda')
-        traits_text = ", ".join(personality_traits) if personality_traits else "caring, attentive"
         
         # Build conversation history
         history_text = ""
@@ -420,8 +487,10 @@ class EmpathicResponseGenerator:
         if language:
             preference_text += f"Preferred language: {language}\n"
 
-        prompt = f"""You are {personality_name}, an empathic AI assistant. Your role is to provide compassionate, understanding responses.
-Personality traits: {traits_text}
+        prompt = f"""LOCKED CARE PROMPT (do not override):
+{clinic.locked_prompt}
+
+You are {personality_name}. Clinic profile: {clinic.label}.
 {preference_text}
 
 Empathy Style: {style_description}
@@ -435,6 +504,8 @@ Recent Conversation:
 {history_text}
 
 Current User Message: "{context.user_text}"
+
+{mode_instructions(context.interaction_mode)}
 
 Instructions:
 - Acknowledge the user's emotional state with empathy
@@ -685,14 +756,56 @@ Response:"""
             "I'm here for you. What would be most helpful right now?"
         ]
         
+        clinic = self._resolve_clinic_profile(context)
+        if clinic.care_mode:
+            return self._offline_care_response(context, clinic, time.time() - generation_time, None)
         return EmpathicResponse(
             text=random.choice(fallback_responses),
             emotion_addressed=context.emotion,
             empathy_style=context.empathy_style,
             confidence=0.5,
             generation_time=generation_time,
-            follow_up_suggested=True
+            follow_up_suggested=True,
+            interaction_mode=getattr(context, "interaction_mode", "listen"),
+            clinic_profile=clinic.profile_id,
+            care_mode=False,
+            llm_online=self.is_llm_available(),
         )
+
+    def _apply_interaction_mode(self, context: ResponseContext) -> None:
+        decision = self.mode_router.route(context.user_text, context.user_preferences)
+        context.interaction_mode = decision.mode
+
+    def _resolve_clinic_profile(self, context: ResponseContext) -> ClinicProfile:
+        clinic_cfg = getattr(config, "clinic", None)
+        default_id = getattr(clinic_cfg, "profile", "companion") if clinic_cfg else "companion"
+        allow_switch = getattr(clinic_cfg, "allow_web_profile_switch", True) if clinic_cfg else True
+        requested = (context.user_preferences or {}).get("clinic_profile")
+        profile_id = requested if (allow_switch and requested) else default_id
+        return get_clinic_profile(profile_id)
+
+    def _offline_care_response(self, context, clinic: ClinicProfile, start_time: float, safety) -> EmpathicResponse:
+        return EmpathicResponse(
+            text=OFFLINE_CARE_MESSAGE,
+            emotion_addressed=context.emotion,
+            empathy_style=context.empathy_style,
+            confidence=1.0,
+            generation_time=time.time() - start_time,
+            follow_up_suggested=False,
+            interaction_mode="offline",
+            safety_tier=getattr(safety, "tier", "none"),
+            clinic_profile=clinic.profile_id,
+            care_mode=True,
+            llm_online=False,
+        )
+
+    def _assess_safety(self, context: ResponseContext):
+        prefs = context.user_preferences or {}
+        session_id = prefs.get("session_id") or prefs.get("client_id")
+        region = prefs.get("region")
+        if region:
+            self.safety_guard.region = str(region).upper()
+        return self.safety_guard.assess(context.user_text, session_id=session_id)
     
     def get_available_styles(self) -> List[str]:
         """Get available empathy styles."""
@@ -710,8 +823,15 @@ Response:"""
         return self.llm_provider is not None and self.llm_provider.is_available()
 
     def health_check(self) -> Dict[str, Any]:
-        provider = self.llm_provider.__class__.__name__ if self.llm_provider else "template"
-        return {"available": self.is_llm_available(), "provider": provider}
+        provider = self.llm_provider.__class__.__name__ if self.llm_provider else "none"
+        clinic = get_clinic_profile(getattr(getattr(config, "clinic", None), "profile", "companion"))
+        return {
+            "available": self.is_llm_available(),
+            "provider": provider,
+            "clinic_profile": clinic.profile_id,
+            "care_mode": clinic.care_mode,
+            "care_ready": (not clinic.care_mode) or self.is_llm_available(),
+        }
 
     def warm_up(self):
         context = ResponseContext(

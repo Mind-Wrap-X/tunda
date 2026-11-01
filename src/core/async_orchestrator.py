@@ -4,6 +4,8 @@ Async streaming orchestrator using asyncio.
 
 import asyncio
 import logging
+import threading
+import time
 import numpy as np
 import pyaudio
 import collections
@@ -53,6 +55,15 @@ class AsyncStreamOrchestrator:
 
         self.transcription_queue = asyncio.Queue(maxsize=self.config.get("audio.queue_maxsize", 10))
         self.synthesis_queue = asyncio.Queue(maxsize=self.config.get("audio.queue_maxsize", 10))
+        self.tts_playing = False
+        self.tts_started_at = 0.0
+        self.barge_in_event = threading.Event()
+        self._barge_in_hits = 0
+        tts_cfg = self.config.text_to_speech
+        self.barge_in_enabled = getattr(tts_cfg, "barge_in", True)
+        self.barge_in_min_chunks = getattr(tts_cfg, "barge_in_min_chunks", 4)
+        self.barge_in_energy_multiplier = getattr(tts_cfg, "barge_in_energy_multiplier", 2.4)
+        self.barge_in_grace_s = getattr(tts_cfg, "barge_in_grace_ms", 350) / 1000.0
 
         self.process_task = None
         self.speak_task = None
@@ -105,6 +116,7 @@ class AsyncStreamOrchestrator:
             return (None, pyaudio.paComplete)
         audio_chunk = np.frombuffer(in_data, dtype=np.float32)
         rms = self.audio_processor.calculate_rms(audio_chunk)
+        self._maybe_barge_in(rms)
         if rms > self.silence_threshold:
             self.is_speaking = True
             self.silence_counter = 0
@@ -132,6 +144,35 @@ class AsyncStreamOrchestrator:
 
         return (in_data, pyaudio.paContinue)
 
+    def _maybe_barge_in(self, rms: float) -> None:
+        if not self.barge_in_enabled or not self.tts_playing:
+            self._barge_in_hits = 0
+            return
+        if (time.monotonic() - self.tts_started_at) < self.barge_in_grace_s:
+            return
+        if rms > self.silence_threshold * self.barge_in_energy_multiplier:
+            self._barge_in_hits += 1
+            if self._barge_in_hits >= self.barge_in_min_chunks:
+                self._request_barge_in()
+        else:
+            self._barge_in_hits = 0
+
+    def _request_barge_in(self) -> None:
+        if self.barge_in_event.is_set():
+            return
+        self.barge_in_event.set()
+        self.tts_playing = False
+        logger.info("Barge-in: patient interrupted spoken reply")
+        if self.loop:
+            self.loop.call_soon_threadsafe(self._drain_synthesis_queue)
+
+    def _drain_synthesis_queue(self) -> None:
+        while not self.synthesis_queue.empty():
+            try:
+                self.synthesis_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
     def _enqueue_audio(self, audio):
         if self.transcription_queue.full():
             return
@@ -151,7 +192,10 @@ class AsyncStreamOrchestrator:
             if not text:
                 continue
             emotion_pred = self.emotion_detector.predict_emotion(audio)
-            emotion_pred = self.emotion_fusion.fuse(emotion_pred, text, transcription.confidence)
+            fusion_boost = self.conversation_memory.get_fusion_text_boost() if self.conversation_memory else 0.0
+            emotion_pred = self.emotion_fusion.fuse(
+                emotion_pred, text, transcription.confidence, text_boost=fusion_boost
+            )
 
             relevant_memories = self.memory.retrieve_relevant(text, limit=self.config.get("memory.retrieval_limit", 3))
             conversation_history = []
@@ -188,10 +232,11 @@ class AsyncStreamOrchestrator:
 
             full_response = full_response.strip()
             if full_response:
-                self.memory.add_memory(
-                    text=f"User: {text}\nAssistant: {full_response}",
-                    metadata={"emotion": emotion_pred.emotion}
-                )
+                if not self.conversation_memory or self.conversation_memory.may_persist():
+                    self.memory.add_memory(
+                        text=f"User: {text}\nAssistant: {full_response}",
+                        metadata={"emotion": emotion_pred.emotion}
+                    )
                 if self.conversation_memory:
                     self.conversation_memory.add_conversation_turn(
                         user_text=text,
@@ -206,16 +251,34 @@ class AsyncStreamOrchestrator:
     async def _speak_loop(self):
         while self.running:
             text, emotion = await self.synthesis_queue.get()
-            if self.config.text_to_speech.streaming:
-                for chunk_result in self.tts.synthesize_stream(text, emotion=emotion):
-                    if chunk_result.success and len(chunk_result.audio) > 0:
-                        self._play_audio(chunk_result.audio, chunk_result.sample_rate)
-            else:
-                result = self.tts.synthesize(text, emotion=emotion)
-                if result.success and len(result.audio) > 0:
-                    self._play_audio(result.audio, result.sample_rate)
+            if self.barge_in_event.is_set():
+                self.barge_in_event.clear()
+                continue
+            self.tts_playing = True
+            self.tts_started_at = time.monotonic()
+            self._barge_in_hits = 0
+            try:
+                if self.config.text_to_speech.streaming:
+                    for chunk_result in self.tts.synthesize_stream(text, emotion=emotion):
+                        if self.barge_in_event.is_set() or not self.running:
+                            break
+                        if chunk_result.success and len(chunk_result.audio) > 0:
+                            await asyncio.to_thread(
+                                self._play_audio, chunk_result.audio, chunk_result.sample_rate
+                            )
+                else:
+                    result = self.tts.synthesize(text, emotion=emotion)
+                    if result.success and len(result.audio) > 0:
+                        await asyncio.to_thread(self._play_audio, result.audio, result.sample_rate)
+            finally:
+                self.tts_playing = False
+                if self.barge_in_event.is_set():
+                    self._drain_synthesis_queue()
+                    self.barge_in_event.clear()
 
     def _play_audio(self, audio: np.ndarray, sample_rate: int):
+        if self.barge_in_event.is_set() or not self.running:
+            return
         output_stream = self.pyaudio_instance.open(
             format=pyaudio.paFloat32,
             channels=1,
@@ -223,9 +286,16 @@ class AsyncStreamOrchestrator:
             output=True,
             output_device_index=self.config.audio.output_device
         )
-        output_stream.write(audio.astype(np.float32).tobytes())
-        output_stream.stop_stream()
-        output_stream.close()
+        chunk = 1024
+        samples = audio.astype(np.float32)
+        try:
+            for i in range(0, len(samples), chunk):
+                if self.barge_in_event.is_set() or not self.running:
+                    break
+                output_stream.write(samples[i:i + chunk].tobytes())
+        finally:
+            output_stream.stop_stream()
+            output_stream.close()
 
     def _prewarm_models(self):
         try:

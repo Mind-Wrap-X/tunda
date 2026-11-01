@@ -1,147 +1,130 @@
-# Empathic Voice Companion
+# TUNDA — Affect-aware voice companion
 
-An AI-powered voice assistant that detects emotional states from speech and responds with appropriate empathy using open-source tools.
+TUNDA is a **local voice/chat companion** that labels affect (from text, and from audio on the desktop path), routes crisis language to help resources, and replies with supportive language via a local LLM when available.
+
+It is **not** a therapist, not emergency care, and **not** a validated empathic intelligence system. Empathy here means *affect-labeled, prompt-guided or template-backed supportive replies* — not measured clinical empathy.
+
+## Honest scope
+
+| Fair to say | Do not claim |
+|-------------|--------------|
+| Affect-aware local companion system | “Empathic AI” as proven understanding |
+| Emotion *labels* condition style, prompt, and TTS | Accurate clinical affect sensing |
+| Local LLM (Ollama) when online; templates or offline care refusal when not | Always on-device deep empathy |
+| Keyword crisis tiers + scripted grounding | Suicide-risk assessment or crisis intervention |
+| Consent, encrypted memory, clinic profiles | Replacement for human care |
+
+**Paths differ:** the **desktop** orchestrator can run audio emotion (e.g. wav2vec2 / fallback models). The **web** app currently uses speech-to-text then **text/keyword** emotion for replies. Vector memory RAG feeds the desktop path; the web path uses conversation continuity/recaps more than retrieval into every reply.
 
 ## Features
 
-- **Real-time Speech Recognition** - Powered by OpenAI Whisper
-- **Emotion Detection** - Analyzes voice tone, pitch, and prosodic features
-- **Empathic Response Generation** - Context-aware responses using local LLM
-- **Adaptive Text-to-Speech** - Voice output that matches emotional context
-- **Conversation Memory** - Tracks emotional context across interactions
-- **Privacy-First** - All processing happens locally, no data sent to external services
+- **Speech recognition** — Whisper / Faster-Whisper (web upload or desktop mic)
+- **Affect labels** — audio models on desktop when configured; text/keyword fusion and web text heuristics
+- **Response generation** — Ollama local LLM when online; Companion profile may use empathy *templates*; care profiles refuse template improv if the LLM is offline
+- **Safety rails** — tiered crisis keyword routing, regional help numbers, interruptible grounding scripts
+- **Clinic profiles** — Companion / Between sessions / High-risk watch with locked prompts
+- **Voice output** — optional Piper or system TTS; web may fall back to browser `speechSynthesis`
+- **Privacy-oriented memory** — consent, wipe, encryption options; local processing by default
 
-## Architecture
+## Architecture (simplified)
 
 ```
-Audio Input → Speech Recognition → Emotion Detection → Response Generation → Text-to-Speech → Audio Output
-     ↓              ↓                    ↓                     ↓                  ↓
-  Microphone    Whisper STT         Librosa +            Local LLM          Piper TTS
-                                   ML Classifier        (Ollama/HF)
+Audio/Text → STT (Whisper) → Affect label → Mode / Safety / Grounding
+                                    ↓
+                         Local LLM (Ollama) or templates / offline care message
+                                    ↓
+                              TTS (Piper / system / browser)
 ```
 
-## Supported Emotions
+Default config may use **system** TTS rather than Piper. Check `config.yaml`.
 
-- **Happy** - Joyful, excited, positive
-- **Sad** - Melancholic, disappointed, down
-- **Angry** - Frustrated, irritated, upset
-- **Anxious** - Worried, stressed, nervous
-- **Calm** - Peaceful, relaxed, content
-- **Neutral** - Balanced, matter-of-fact
+## Supported emotion labels
+
+Happy, sad, angry, anxious, calm, neutral — used as **routing labels**, not diagnostic categories.
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.8+ (3.9-3.11 recommended)
-- FFmpeg (for audio processing)
-- At least 4GB RAM (for local LLM)
+- Python 3.8+ (3.9–3.11 recommended)
+- FFmpeg (audio)
+- ~4GB+ RAM if you run a local LLM
+- [Ollama](https://ollama.com) recommended for care profiles (`between_sessions`, `high_risk_watch`)
 
-### Quick Setup (Recommended)
+### Quick setup
 
-1. Clone or download the project:
 ```bash
-cd empathic-voice-companion
-```
-
-2. Create virtual environment:
-```bash
+cd TUNDA
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Run the safe installer:
-```bash
+source venv/bin/activate  # Windows: venv\Scripts\activate
 python install.py
 ```
 
-This installer handles dependency compatibility issues automatically.
+Or manually:
 
-### Alternative Setup
-
-If you prefer manual installation:
 ```bash
-# Install minimal dependencies
 pip install -r requirements-minimal.txt
-
-# Then run setup for models
 python setup_models.py
 ```
 
 ## Usage
 
-### Basic Usage
 ```bash
+# Desktop / CLI
 python main.py
-```
 
-### Web Interface
-```bash
+# Web UI — http://localhost:8000
 python app.py
-# Open http://localhost:8000 in your browser
+
+# REST API — http://localhost:8001
+python api_server.py
 ```
 
-### API Mode
-```bash
-python api_server.py
-# API available at http://localhost:8001
-```
+In the web UI, the honesty strip states that TUNDA is not a therapist and not emergency care. Prefer **Companion** without Ollama; start Ollama before care profiles.
 
 ## Configuration
 
-Edit `config.yaml` to customize:
-- Emotion detection sensitivity
-- Response personality styles
-- Voice models and settings
-- Audio input/output devices
+Edit `config.yaml` for latency profile, STT/TTS providers, emotion model type, clinic default profile, and personality styles.
 
-## Development
+See also:
 
-### Project Structure
+- [`docs/ROADMAP_FOR_CLINICIANS_AND_USERS.md`](docs/ROADMAP_FOR_CLINICIANS_AND_USERS.md) — user and clinician framing
+- [`GETTING_STARTED.md`](GETTING_STARTED.md) — setup walkthrough
+
+## Project layout (high level)
+
 ```
-empathic-voice-companion/
+TUNDA/
 ├── src/
-│   ├── speech/
-│   │   ├── recognition.py      # Whisper STT integration
-│   │   └── synthesis.py        # Piper TTS integration
-│   ├── emotion/
-│   │   ├── detector.py         # Emotion detection engine
-│   │   └── features.py         # Audio feature extraction
-│   ├── response/
-│   │   ├── generator.py        # LLM response generation
-│   │   └── empathy.py          # Empathic response patterns
-│   ├── memory/
-│   │   └── conversation.py     # Conversation history
-│   └── utils/
-│       ├── audio.py            # Audio processing utilities
-│       └── config.py           # Configuration management
-├── models/                     # Downloaded AI models
-├── data/                       # Training data and samples
-├── tests/                      # Unit tests
-├── web/                        # Web interface files
-├── main.py                     # Main CLI application
-├── app.py                      # Web application
-├── api_server.py              # REST API server
-├── requirements.txt           # Python dependencies
-├── config.yaml               # Configuration file
-└── setup_models.py           # Model download script
+│   ├── speech/          # STT, TTS, enhance, stream
+│   ├── emotion/         # detectors, fusion
+│   ├── response/        # generator, empathy templates, safety, grounding, mode router
+│   ├── memory/          # conversation, crypto, continuity
+│   ├── clinic/          # care profiles
+│   └── eval/            # small golden harness (routing/safety, not human-rated empathy)
+├── web/                 # templates + static
+├── tests/
+├── main.py              # CLI
+├── app.py               # web
+└── config.yaml
 ```
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License — see `LICENSE`.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+1. Fork the repository  
+2. Create a feature branch  
+3. Make your changes and add tests  
+4. Open a pull request  
+
+Avoid marketing copy that implies clinical empathy or emergency capability.
 
 ## Acknowledgments
 
-- OpenAI Whisper for speech recognition
-- Librosa for audio analysis
-- Piper TTS for speech synthesis
-- Hugging Face for ML models
+- OpenAI Whisper / Faster-Whisper for speech recognition  
+- Librosa and Hugging Face models for audio analysis where configured  
+- Piper (optional) and system/browser TTS for speech synthesis  
+- Ollama for local LLM responses  

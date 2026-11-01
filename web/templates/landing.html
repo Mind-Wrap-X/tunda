@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunda | Empathy, Futurized</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --neon-mint: #86ffd5;
+            --neon-violet: #9b7bff;
+            --text-main: #eef6ff;
+            --text-soft: #b6c8de;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+
+        body {
+            font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-main);
+            overflow-x: hidden;
+            background: #03070f;
+        }
+
+        .stage {
+            position: relative;
+            min-height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bg-video {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            transform: scale(1.04);
+            filter: saturate(1.12) contrast(1.04) brightness(0.96);
+        }
+
+        .video-grade {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background:
+                radial-gradient(circle at 20% 18%, rgba(134, 255, 213, 0.14), transparent 32%),
+                radial-gradient(circle at 82% 22%, rgba(155, 123, 255, 0.2), transparent 36%),
+                linear-gradient(180deg, rgba(3,7,15,0.45) 0%, rgba(3,7,15,0.3) 42%, rgba(3,7,15,0.92) 100%);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(132, 255, 211, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(132, 255, 211, 0.05) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(circle at 50% 42%, rgba(0,0,0,0.85), transparent 80%);
+        }
+
+        .slice-beam {
+            position: absolute;
+            top: -10%;
+            left: 50%;
+            width: 2px;
+            height: 120%;
+            z-index: 3;
+            background: linear-gradient(180deg, transparent, rgba(140, 255, 221, 0.9), transparent);
+            box-shadow: 0 0 26px rgba(140, 255, 221, 0.85);
+            opacity: 0;
+            animation: beamSweep 7s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes beamSweep {
+            0% { transform: translateX(-46vw) scaleY(0.7); opacity: 0; }
+            12% { opacity: 0.9; }
+            50% { transform: translateX(46vw) scaleY(1); opacity: 0.9; }
+            62% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+
+        .content {
+            position: relative;
+            z-index: 4;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: min(1180px, 92vw);
+            margin: 0 auto;
+            padding: 26px 0 48px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .brand-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--neon-mint), var(--neon-violet));
+            box-shadow: 0 0 18px rgba(144, 255, 221, 0.85);
+            animation: pulseDot 2.4s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.25); opacity: 0.75; }
+        }
+
+        .launch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #042018;
+            background: linear-gradient(95deg, var(--neon-mint), #8cd7ff);
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.28);
+            box-shadow: 0 12px 30px rgba(95, 255, 211, 0.28);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .launch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 38px rgba(95, 255, 211, 0.4);
+        }
+
+        .hero {
+            margin-top: auto;
+            max-width: 720px;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.74rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #9bffe5;
+            margin-bottom: 18px;
+            border: 1px solid rgba(134, 255, 213, 0.32);
+            border-radius: 999px;
+            padding: 8px 14px;
+            background: rgba(134, 255, 213, 0.08);
+            backdrop-filter: blur(6px);
+        }
+
+        h1 {
+            font-size: clamp(2.3rem, 6vw, 4.2rem);
+            line-height: 1.03;
+            letter-spacing: 0.02em;
+            margin-bottom: 18px;
+            text-shadow: 0 6px 40px rgba(0,0,0,0.55);
+        }
+
+        h1 .accent {
+            background: linear-gradient(98deg, #f6feff 0%, var(--neon-mint) 45%, var(--neon-violet) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            color: var(--text-soft);
+            font-size: 1.04rem;
+            line-height: 1.65;
+            max-width: 56ch;
+            margin-bottom: 26px;
+            text-shadow: 0 2px 22px rgba(0,0,0,0.7);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ghost-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #e7f4ff;
+            border: 1px solid rgba(180, 205, 230, 0.4);
+            padding: 12px 18px;
+            border-radius: 999px;
+            background: rgba(10, 22, 38, 0.4);
+            backdrop-filter: blur(8px);
+            transition: border-color 0.2s ease;
+        }
+        .ghost-btn:hover { border-color: var(--neon-mint); }
+
+        .speed-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #9bffe5;
+            padding: 11px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(134, 255, 213, 0.25);
+            background: rgba(7, 18, 31, 0.5);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .stats {
+            margin-top: 32px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            max-width: 720px;
+        }
+
+        .stat {
+            border: 1px solid rgba(130, 243, 208, 0.2);
+            background: rgba(8, 18, 32, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .stat strong {
+            display: block;
+            color: var(--neon-mint);
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .stat span { color: #9fb6cf; font-size: 0.84rem; }
+
+        .honesty-strip {
+            position: relative;
+            z-index: 4;
+            margin-top: 28px;
+            max-width: 720px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 196, 120, 0.28);
+            background: rgba(8, 16, 28, 0.72);
+            color: #f3e6d2;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+        .honesty-strip strong { color: #ffe4c4; }
+        .honesty-strip a { color: #9bffe5; }
+
+        @media (max-width: 720px) {
+            .stats { grid-template-columns: 1fr; }
+            .topbar .brand span { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stage">
+        <video
+            class="bg-video"
+            id="bgVideo"
+            autoplay muted loop playsinline
+            poster="/static/avocado-cinematic-poster.jpg"
+        >
+            <source src="/static/avocado-cinematic-smooth.mp4" type="video/mp4">
+            <source src="/static/avocado-cinematic.mp4" type="video/mp4">
+        </video>
+
+        <div class="video-grade"></div>
+        <div class="grid-overlay"></div>
+        <div class="slice-beam"></div>
+
+        <div class="content">
+            <nav class="topbar">
+                <a class="brand" href="/">
+                    <span class="brand-dot"></span>
+                    <span>TUNDA // Futuristic Empathy</span>
+                </a>
+                <a class="launch-btn" href="/app">
+                    <i class="fas fa-circle-play"></i>
+                    Launch Voice Interface
+                </a>
+            </nav>
+
+            <div class="hero">
+                <div class="hero-kicker"><i class="fas fa-film"></i> Cinematic slow-motion visual</div>
+                <h1>Empathy, <span class="accent">revealed in motion.</span></h1>
+                <p>
+                    Tunda listens, understands, and responds with calibrated warmth. A voice companion built for
+                    real conversations — adaptive, local-first, and designed to meet you where you are.
+                </p>
+
+                <div class="hero-actions">
+                    <a class="launch-btn" href="/app"><i class="fas fa-arrow-right"></i> Enter Tunda</a>
+                    <a class="ghost-btn" href="/api/health"><i class="fas fa-heartbeat"></i> System Health</a>
+                    <span class="speed-tag" id="speedTag" title="Click to change playback speed">
+                        <i class="fas fa-gauge-high"></i> Smooth slow-mo: 1x
+                    </span>
+                </div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <strong>Adaptive</strong>
+                        <span>Listen / coach routing per message</span>
+                    </div>
+                    <div class="stat">
+                        <strong>Calibrated</strong>
+                        <span>Your feedback tunes emotion fusion</span>
+                    </div>
+                    <div class="stat">
+                        <strong>Local-first</strong>
+                        <span>Speech &amp; memory run on your system</span>
+                    </div>
+                </div>
+
+                <div class="honesty-strip" role="note">
+                    <strong>Tunda is not a therapist and not emergency care.</strong>
+                    If you might be in danger, use local emergency services.
+                    Visits are not saved unless you choose Remember in the app. Saved memory is encrypted on this device.
+                    Clinician trends (mood, flags, engagement — no transcripts) stay off until you opt in.
+                    You can wipe saved memory anytime in the app.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('bgVideo');
+        const speedTag = document.getElementById('speedTag');
+        const speeds = [1, 0.75, 0.5, 1.25];
+        let speedIndex = 0;
+
+        function applySpeed() {
+            const s = speeds[speedIndex];
+            if (video) video.playbackRate = s;
+            if (speedTag) speedTag.innerHTML = `<i class="fas fa-gauge-high"></i> Smooth slow-mo: ${s}x`;
+        }
+
+        if (video) {
+            video.addEventListener('loadedmetadata', applySpeed);
+            video.addEventListener('play', applySpeed);
+            const tryPlay = video.play();
+            if (tryPlay && typeof tryPlay.catch === 'function') tryPlay.catch(() => {});
+            applySpeed();
+        }
+
+        if (speedTag) {
+            speedTag.addEventListener('click', () => {
+                speedIndex = (speedIndex + 1) % speeds.length;
+                applySpeed();
+            });
+        }
+    </script>
+</body>
+</html>

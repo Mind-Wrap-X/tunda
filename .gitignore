@@ -123,6 +123,7 @@ logs/
 
 # Data files (conversations, user data)
 data/conversations.json
+data/.memory_key
 data/user_profiles/
 data/sessions/
 

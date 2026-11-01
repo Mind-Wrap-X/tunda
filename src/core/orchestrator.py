@@ -61,6 +61,15 @@ class StreamOrchestrator:
         queue_maxsize = self.config.get("audio.queue_maxsize", 10)
         self.transcription_queue = queue.Queue(maxsize=queue_maxsize)
         self.synthesis_queue = queue.Queue(maxsize=queue_maxsize)
+        self.tts_playing = False
+        self.tts_started_at = 0.0
+        self.barge_in_event = threading.Event()
+        self._barge_in_hits = 0
+        tts_cfg = self.config.text_to_speech
+        self.barge_in_enabled = getattr(tts_cfg, "barge_in", True)
+        self.barge_in_min_chunks = getattr(tts_cfg, "barge_in_min_chunks", 4)
+        self.barge_in_energy_multiplier = getattr(tts_cfg, "barge_in_energy_multiplier", 2.4)
+        self.barge_in_grace_s = getattr(tts_cfg, "barge_in_grace_ms", 350) / 1000.0
         
         # Threads
         self.listen_thread = None
@@ -127,6 +136,7 @@ class StreamOrchestrator:
         
         # Simple VAD (Energy based)
         rms = self.audio_processor.calculate_rms(audio_chunk)
+        self._maybe_barge_in(rms)
         if rms > self.silence_threshold: # Threshold
             self.is_speaking = True
             self.silence_counter = 0
@@ -159,6 +169,35 @@ class StreamOrchestrator:
                 self.silence_counter = 0
         
         return (in_data, pyaudio.paContinue)
+
+    def _maybe_barge_in(self, rms: float) -> None:
+        """Stop spoken playback as soon as the patient starts talking."""
+        if not self.barge_in_enabled or not self.tts_playing:
+            self._barge_in_hits = 0
+            return
+        if (time.monotonic() - self.tts_started_at) < self.barge_in_grace_s:
+            return
+        if rms > self.silence_threshold * self.barge_in_energy_multiplier:
+            self._barge_in_hits += 1
+            if self._barge_in_hits >= self.barge_in_min_chunks:
+                self._request_barge_in()
+        else:
+            self._barge_in_hits = 0
+
+    def _request_barge_in(self) -> None:
+        if self.barge_in_event.is_set():
+            return
+        self.barge_in_event.set()
+        self._drain_synthesis_queue()
+        self.tts_playing = False
+        logger.info("Barge-in: patient interrupted spoken reply")
+
+    def _drain_synthesis_queue(self) -> None:
+        while True:
+            try:
+                self.synthesis_queue.get_nowait()
+            except queue.Empty:
+                break
 
     def _process_loop(self):
         """Consumes audio segments, transcribes, and generates streaming response."""
@@ -203,7 +242,10 @@ class StreamOrchestrator:
                 emotion_pred = None
             if emotion_pred is None:
                 emotion_pred = self.emotion_detector._default_prediction()
-            emotion_pred = self.emotion_fusion.fuse(emotion_pred, text, transcription.confidence)
+            fusion_boost = self.conversation_memory.get_fusion_text_boost() if self.conversation_memory else 0.0
+            emotion_pred = self.emotion_fusion.fuse(
+                emotion_pred, text, transcription.confidence, text_boost=fusion_boost
+            )
             logger.info(f"Emotion: {emotion_pred.emotion} ({emotion_pred.confidence:.2f})")
             log_event(
                 logger,
@@ -245,8 +287,10 @@ class StreamOrchestrator:
                 full_response += token
                 current_sentence += token
                 if any(punct in token for punct in ['.', '!', '?']):
-                    # Send sentence to synthesis
-                    self.synthesis_queue.put((current_sentence, emotion_pred.emotion))
+                    try:
+                        self.synthesis_queue.put((current_sentence, emotion_pred.emotion), timeout=0.2)
+                    except queue.Full:
+                        logger.warning("Synthesis queue full. Dropping sentence.")
                     current_sentence = ""
             
             if current_sentence.strip():
@@ -258,10 +302,11 @@ class StreamOrchestrator:
             # 5. Save Interaction to Long-term Memory
             full_response = full_response.strip()
             if full_response:
-                self.memory.add_memory(
-                    text=f"User: {text}\nAssistant: {full_response}",
-                    metadata={"emotion": emotion_pred.emotion}
-                )
+                if not self.conversation_memory or self.conversation_memory.may_persist():
+                    self.memory.add_memory(
+                        text=f"User: {text}\nAssistant: {full_response}",
+                        metadata={"emotion": emotion_pred.emotion}
+                    )
                 if self.conversation_memory:
                     self.conversation_memory.add_conversation_turn(
                         user_text=text,
@@ -284,22 +329,34 @@ class StreamOrchestrator:
             logger.info(f"Synthesizing: {text}")
             if not text.strip():
                 continue
-            
-            # Synthesize
-            # TTS pipeline currently synthesizes to memory. 
-            # We ideally need to stream the audio out.
-            # For now, we synthesize the whole sentence and play it.
-            if self.config.text_to_speech.streaming:
-                for chunk_result in self.tts.synthesize_stream(text, emotion=emotion):
-                    if chunk_result.success and len(chunk_result.audio) > 0:
-                        self._play_audio(chunk_result.audio, chunk_result.sample_rate)
-            else:
-                result = self.tts.synthesize(text, emotion=emotion)
-                if result.success and len(result.audio) > 0:
-                    self._play_audio(result.audio, result.sample_rate)
+            if self.barge_in_event.is_set():
+                self.barge_in_event.clear()
+                continue
+
+            self.tts_playing = True
+            self.tts_started_at = time.monotonic()
+            self._barge_in_hits = 0
+            try:
+                if self.config.text_to_speech.streaming:
+                    for chunk_result in self.tts.synthesize_stream(text, emotion=emotion):
+                        if self.barge_in_event.is_set() or not self.running:
+                            break
+                        if chunk_result.success and len(chunk_result.audio) > 0:
+                            self._play_audio(chunk_result.audio, chunk_result.sample_rate)
+                else:
+                    result = self.tts.synthesize(text, emotion=emotion)
+                    if result.success and len(result.audio) > 0:
+                        self._play_audio(result.audio, result.sample_rate)
+            finally:
+                self.tts_playing = False
+                if self.barge_in_event.is_set():
+                    self._drain_synthesis_queue()
+                    self.barge_in_event.clear()
 
     def _play_audio(self, audio: np.ndarray, sample_rate: int):
-        """Play audio array."""
+        """Play audio in short chunks so barge-in can stop within ~60ms."""
+        if self.barge_in_event.is_set() or not self.running:
+            return
         if self.output_stream is None or self.output_sample_rate != sample_rate:
             if self.output_stream:
                 self.output_stream.stop_stream()
@@ -312,7 +369,12 @@ class StreamOrchestrator:
                 output_device_index=self.config.audio.output_device
             )
             self.output_sample_rate = sample_rate
-        self.output_stream.write(audio.astype(np.float32).tobytes())
+        chunk = 1024
+        samples = audio.astype(np.float32)
+        for i in range(0, len(samples), chunk):
+            if self.barge_in_event.is_set() or not self.running:
+                break
+            self.output_stream.write(samples[i:i + chunk].tobytes())
 
     def _prewarm_models(self):
         try:

@@ -420,8 +420,15 @@ class SpeechRecognitionPipeline:
     def transcribe(self, audio: np.ndarray) -> TranscriptionResult:
         """Transcribe audio using configured settings."""
         start = time.time()
+        if getattr(self.config, "denoise", True):
+            try:
+                from .enhance import enhance_for_stt
+                audio = enhance_for_stt(audio, sample_rate=16000)
+            except Exception as exc:
+                logger.warning("STT denoise skipped: %s", exc)
         recognizer = self._choose_recognizer(audio)
         vad_threshold = self._adaptive_vad_threshold(audio)
+        prompt = self.config.initial_prompt or getattr(self.config, "distress_prompt", None)
         result = recognizer.transcribe(
             audio,
             language=self.config.language if self.config.language != "auto" else None,
@@ -433,7 +440,7 @@ class SpeechRecognitionPipeline:
             vad_threshold=vad_threshold,
             vad_min_silence_duration_ms=self.config.vad_min_silence_duration_ms,
             vad_speech_pad_ms=self.config.vad_speech_pad_ms,
-            initial_prompt=self.config.initial_prompt,
+            initial_prompt=prompt,
             condition_on_previous_text=self.config.condition_on_previous_text
         )
         latency_manager.observe("stt", (time.time() - start) * 1000.0)

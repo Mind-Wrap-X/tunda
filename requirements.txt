@@ -12,4 +12,6 @@ openai-whisper>=20230918
 scikit-learn>=1.0.0
 matplotlib>=3.4.0
 transformers>=4.30.0
+tf-keras>=2.21.0
 torch>=2.0.0
+cryptography>=42.0.0

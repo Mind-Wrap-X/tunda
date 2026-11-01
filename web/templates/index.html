@@ -15,6 +15,36 @@
             color: #333;
         }
 
+        .honesty-strip {
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            background: rgba(8, 16, 28, 0.94);
+            border-bottom: 1px solid rgba(255, 196, 120, 0.28);
+            color: #f3e6d2;
+            font-size: 0.86em;
+            line-height: 1.45;
+        }
+        .honesty-strip .honesty-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px 20px 12px;
+        }
+        .honesty-strip strong { color: #ffe4c4; }
+        .honesty-strip details { margin-top: 6px; }
+        .honesty-strip summary { cursor: pointer; color: #9bffe5; }
+        .honesty-strip ul { margin: 8px 0 0 18px; }
+        .honesty-strip .wipe-btn {
+            margin-top: 8px;
+            border: 1px solid rgba(255, 160, 170, 0.45);
+            background: transparent;
+            color: #ffd0d6;
+            border-radius: 999px;
+            padding: 5px 12px;
+            cursor: pointer;
+            font-size: 0.86em;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -22,7 +52,8 @@
             display: grid;
             grid-template-columns: 1fr 300px;
             gap: 20px;
-            height: 100vh;
+            height: calc(100vh - 0px);
+            min-height: 0;
         }
 
         .main-panel {
@@ -93,6 +124,21 @@
 
         .tunda-avatar.speaking {
             animation: voiceSpeaking 1s infinite;
+            cursor: pointer;
+        }
+
+        .tunda-avatar.speaking::after {
+            content: "Tap or speak to interrupt";
+            position: absolute;
+            left: 50%;
+            bottom: -18px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #9bffe5;
+            opacity: 0.85;
         }
 
         .tunda-avatar.speaking .voice-wave-bar {
@@ -628,6 +674,515 @@
             50% { height: 25px; }
         }
 
+        .prefs-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin: 10px 0 14px;
+            padding: 10px 14px;
+            background: rgba(102, 126, 234, 0.08);
+            border-radius: 12px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .prefs-bar label {
+            white-space: nowrap;
+        }
+
+        .prefs-bar select {
+            flex: 1;
+            min-width: 140px;
+            max-width: 280px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            font-size: 0.95em;
+        }
+
+        .region-hint {
+            flex-basis: 100%;
+            font-size: 0.82em;
+            color: #7aa3c7;
+        }
+
+        .consent-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(131, 244, 208, 0.22);
+            background: rgba(8, 22, 38, 0.55);
+            font-size: 0.86em;
+            color: #c5d8ec;
+        }
+
+        .consent-bar .consent-copy { flex: 1 1 220px; }
+        .consent-btn {
+            border: 1px solid rgba(131, 244, 208, 0.3);
+            background: rgba(10, 25, 43, 0.95);
+            color: #dcf9ff;
+            border-radius: 999px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.86em;
+        }
+        .consent-btn.keep { border-color: rgba(134, 255, 213, 0.45); }
+        .consent-btn.forget { border-color: rgba(255, 160, 170, 0.4); color: #ffd0d6; }
+        .consent-status { color: #86ffd5; font-size: 0.82em; }
+
+        .care-banner {
+            margin: 0 0 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 196, 120, 0.45);
+            background: rgba(80, 40, 10, 0.45);
+            color: #ffe4c4;
+            font-size: 0.88em;
+        }
+
+        .resume-card, .recap-card, .clinician-card {
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(131, 244, 208, 0.22);
+            background: rgba(8, 22, 38, 0.72);
+            color: #d5e6f5;
+            font-size: 0.88em;
+        }
+        .resume-card h3, .recap-card h3, .clinician-card h3 {
+            margin: 0 0 8px;
+            color: #9bffe5;
+            font-size: 0.95em;
+        }
+        .recap-text {
+            white-space: pre-wrap;
+            line-height: 1.45;
+            margin: 0 0 10px;
+        }
+        .trend-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(131, 244, 208, 0.12);
+        }
+
+        .crisis-help-card {
+            margin-top: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 140, 160, 0.35);
+            background: rgba(40, 12, 24, 0.72);
+            color: #ffe8ee;
+            font-size: 0.88em;
+        }
+
+        .crisis-help-card strong {
+            display: block;
+            color: #ffd0da;
+            margin-bottom: 6px;
+        }
+
+        .crisis-help-card a {
+            color: #9bffe5;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .crisis-help-card p {
+            margin: 0 0 8px;
+            line-height: 1.45;
+            color: #f3d5dc;
+        }
+
+        .calibration-feedback {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: rgba(248, 250, 252, 0.95);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85em;
+        }
+
+        .calibration-feedback .cal-hint {
+            color: #64748b;
+            margin-bottom: 10px;
+            font-size: 0.92em;
+        }
+
+        .calibration-feedback .cal-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .calibration-feedback .cal-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .calibration-feedback .cal-btn {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.88em;
+            color: #475569;
+            transition: background 0.15s ease;
+        }
+
+        .calibration-feedback .cal-btn:hover:not(:disabled) {
+            background: #eef2ff;
+            border-color: #667eea;
+            color: #4338ca;
+        }
+
+        .calibration-feedback .cal-btn:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        .calibration-feedback .cal-felt-select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.88em;
+        }
+
+        .calibration-feedback .cal-meta {
+            margin-top: 8px;
+            color: #94a3b8;
+            font-size: 0.82em;
+        }
+
+        .cyber-grid {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(107, 235, 186, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(107, 235, 186, 0.07) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: radial-gradient(circle at 50% 28%, rgba(0, 0, 0, 0.95), transparent 75%);
+            z-index: 0;
+        }
+
+        body {
+            background:
+                radial-gradient(circle at 18% 15%, rgba(107, 235, 186, 0.12), transparent 32%),
+                radial-gradient(circle at 80% 20%, rgba(112, 79, 255, 0.2), transparent 35%),
+                linear-gradient(130deg, #040a14 0%, #091423 38%, #150d26 100%);
+            color: #e5edf8;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1320px;
+        }
+
+        .main-panel,
+        .side-panel {
+            background: linear-gradient(145deg, rgba(10, 24, 40, 0.9), rgba(17, 26, 53, 0.82));
+            border: 1px solid rgba(108, 232, 188, 0.15);
+            box-shadow: 0 24px 70px rgba(4, 8, 20, 0.65), inset 0 1px 0 rgba(188, 248, 231, 0.08);
+            backdrop-filter: blur(20px);
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(110, 235, 190, 0.35);
+            background: rgba(26, 255, 193, 0.09);
+            color: #7ff7cf;
+            font-size: 0.76em;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .header h1 {
+            font-size: clamp(2.4rem, 4vw, 3.4rem);
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 24px rgba(122, 255, 206, 0.12);
+            background: linear-gradient(105deg, #f4fffd 0%, #7df2cf 38%, #9a8cff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: #a0b8d3;
+            max-width: 660px;
+            margin: 10px auto 0;
+            line-height: 1.5;
+        }
+
+        .tunda-avatar {
+            width: 220px;
+            height: 220px;
+            border-radius: 40px;
+            margin: 0 auto 18px;
+            background: radial-gradient(circle at center, rgba(58, 86, 121, 0.3), rgba(9, 14, 33, 0.92));
+            border: 1px solid rgba(138, 222, 199, 0.2);
+            box-shadow: 0 0 0 1px rgba(146, 255, 214, 0.08), 0 30px 70px rgba(1, 6, 17, 0.7);
+            overflow: visible;
+        }
+
+        .holo-aura {
+            position: absolute;
+            inset: 24px;
+            border-radius: 28px;
+            border: 1px solid rgba(144, 255, 214, 0.12);
+            box-shadow: inset 0 0 35px rgba(121, 255, 205, 0.08), 0 0 25px rgba(124, 72, 255, 0.18);
+            animation: auraFloat 4.2s ease-in-out infinite;
+        }
+
+        .voice-node {
+            width: 100%;
+            height: 100%;
+            opacity: 0.28;
+            transform: scale(0.85);
+        }
+
+        .voice-core {
+            border-color: rgba(144, 255, 213, 0.34);
+        }
+
+        .avocado-stage {
+            position: absolute;
+            inset: 26px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            z-index: 4;
+            perspective: 700px;
+        }
+
+        .avocado-half {
+            position: relative;
+            width: 74px;
+            height: 124px;
+            border-radius: 50% 50% 48% 48% / 44% 44% 56% 56%;
+            background: linear-gradient(160deg, #8adf61 0%, #4ba833 70%);
+            border: 2px solid rgba(17, 65, 30, 0.5);
+            box-shadow: 0 14px 24px rgba(7, 42, 23, 0.45);
+            transform-origin: center;
+            transition: transform 0.85s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.6s ease;
+            overflow: hidden;
+        }
+
+        .avocado-half::before {
+            content: '';
+            position: absolute;
+            inset: 8px 10px 10px;
+            border-radius: 50% 50% 48% 48% / 43% 43% 57% 57%;
+            background: radial-gradient(circle at 42% 38%, #c8f68b 0%, #a3e660 44%, #86ce43 100%);
+            box-shadow: inset 0 0 14px rgba(36, 72, 15, 0.24);
+        }
+
+        .avocado-half.left {
+            border-top-right-radius: 42% 45%;
+            border-bottom-right-radius: 40% 50%;
+        }
+
+        .avocado-half.right {
+            border-top-left-radius: 42% 45%;
+            border-bottom-left-radius: 40% 50%;
+        }
+
+        .avocado-half.right::after {
+            content: '';
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            top: 44px;
+            left: 16px;
+            background: radial-gradient(circle at 30% 30%, #c58c4f 0%, #8f5d31 65%, #633b1d 100%);
+            box-shadow: inset 0 0 10px rgba(44, 19, 6, 0.3), 0 0 0 4px rgba(198, 246, 139, 0.4);
+        }
+
+        .avocado-glow-line {
+            position: absolute;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, transparent, rgba(132, 255, 217, 0.95), transparent);
+            box-shadow: 0 0 20px rgba(116, 255, 210, 0.85);
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+
+        .slice-particles span {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #cbff8f 0%, #86d94b 90%);
+            opacity: 0;
+            transform: translate(0, 0) scale(0.5);
+        }
+
+        .slice-particles span:nth-child(1) { top: 44%; left: 49%; }
+        .slice-particles span:nth-child(2) { top: 42%; left: 53%; }
+        .slice-particles span:nth-child(3) { top: 49%; left: 47%; }
+        .slice-particles span:nth-child(4) { top: 54%; left: 52%; }
+
+        .avocado-stage.slice-active .avocado-glow-line {
+            opacity: 1;
+            animation: sliceLine 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .avocado-stage.slice-active .avocado-half.left {
+            transform: translateX(-16px) rotateY(22deg) rotate(-7deg);
+            box-shadow: -10px 18px 26px rgba(9, 36, 20, 0.45);
+        }
+
+        .avocado-stage.slice-active .avocado-half.right {
+            transform: translateX(16px) rotateY(-22deg) rotate(7deg);
+            box-shadow: 10px 18px 26px rgba(9, 36, 20, 0.45);
+        }
+
+        .avocado-stage.slice-active .slice-particles span {
+            animation: seedBurst 0.9s ease-out forwards;
+        }
+
+        .avocado-stage.slice-active .slice-particles span:nth-child(1) { animation-delay: 0.03s; }
+        .avocado-stage.slice-active .slice-particles span:nth-child(2) { animation-delay: 0.08s; }
+        .avocado-stage.slice-active .slice-particles span:nth-child(3) { animation-delay: 0.12s; }
+        .avocado-stage.slice-active .slice-particles span:nth-child(4) { animation-delay: 0.15s; }
+
+        .tunda-avatar.listening .holo-aura {
+            border-color: rgba(140, 255, 216, 0.4);
+            box-shadow: inset 0 0 28px rgba(141, 255, 213, 0.16), 0 0 30px rgba(136, 70, 255, 0.35);
+        }
+
+        .tunda-avatar.processing .holo-aura {
+            animation-duration: 1.6s;
+            box-shadow: inset 0 0 42px rgba(136, 70, 255, 0.24), 0 0 30px rgba(131, 255, 220, 0.24);
+        }
+
+        .tunda-avatar.speaking .avocado-half {
+            animation: avoTalk 0.9s ease-in-out infinite;
+        }
+
+        .chat-container {
+            background: linear-gradient(180deg, rgba(11, 25, 44, 0.82), rgba(6, 13, 28, 0.9));
+            border: 1px solid rgba(143, 250, 219, 0.12);
+            box-shadow: inset 0 0 30px rgba(39, 104, 180, 0.12);
+        }
+
+        .user-message {
+            background: linear-gradient(130deg, #7a57ff, #42b8ff);
+        }
+
+        .assistant-message {
+            background: rgba(11, 27, 46, 0.88);
+            border: 1px solid rgba(131, 244, 208, 0.26);
+            color: #eaf4ff;
+        }
+
+        .status {
+            background: rgba(95, 246, 198, 0.12);
+            color: #87ffd8;
+            border: 1px solid rgba(138, 253, 217, 0.25);
+        }
+
+        .input-container {
+            background: rgba(8, 19, 33, 0.95);
+            border: 1px solid rgba(131, 244, 208, 0.2);
+            box-shadow: 0 12px 28px rgba(2, 8, 18, 0.55);
+        }
+
+        .text-input {
+            color: #eaf3ff;
+            background: rgba(11, 28, 47, 0.92);
+            border: 1px solid rgba(131, 244, 208, 0.14);
+        }
+
+        .text-input:focus {
+            background: rgba(15, 35, 58, 0.95);
+            border-color: rgba(131, 244, 208, 0.32);
+        }
+
+        .prefs-bar {
+            background: rgba(82, 245, 196, 0.08);
+            border: 1px solid rgba(131, 244, 208, 0.22);
+            color: #9dc1df;
+        }
+
+        .prefs-bar select {
+            background: rgba(10, 25, 43, 0.95);
+            color: #dcf9ff;
+            border: 1px solid rgba(131, 244, 208, 0.22);
+        }
+
+        .region-hint {
+            color: #7aa3c7;
+        }
+
+        .calibration-feedback {
+            background: rgba(7, 20, 35, 0.95);
+            border: 1px solid rgba(131, 244, 208, 0.2);
+            color: #dcecff;
+        }
+
+        .calibration-feedback .cal-btn {
+            background: rgba(9, 25, 43, 0.95);
+            border-color: rgba(131, 244, 208, 0.27);
+            color: #b9d9ff;
+        }
+
+        .calibration-feedback .cal-felt-select {
+            background: rgba(9, 25, 43, 0.95);
+            color: #dbecff;
+            border-color: rgba(131, 244, 208, 0.24);
+        }
+
+        @keyframes auraFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+
+        @keyframes sliceLine {
+            0% { transform: translateY(-30px); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(40px); opacity: 0; }
+        }
+
+        @keyframes seedBurst {
+            0% { opacity: 0.95; transform: translate(0, 0) scale(0.45); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.15); }
+        }
+
+        .slice-particles span:nth-child(1) { --dx: -28px; --dy: -22px; }
+        .slice-particles span:nth-child(2) { --dx: 30px; --dy: -12px; }
+        .slice-particles span:nth-child(3) { --dx: -20px; --dy: 26px; }
+        .slice-particles span:nth-child(4) { --dx: 26px; --dy: 18px; }
+
+        @keyframes avoTalk {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-2px) scale(1.02); }
+        }
+
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -639,18 +1194,73 @@
             }
 
             .tunda-avatar {
-                width: 80px;
-                height: 80px;
-                font-size: 2em;
+                width: 170px;
+                height: 170px;
+            }
+
+            .prefs-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .prefs-bar select {
+                max-width: none;
+            }
+
+            .avocado-stage {
+                inset: 18px;
+                gap: 8px;
+            }
+
+            .avocado-half {
+                width: 54px;
+                height: 94px;
+            }
+
+            .avocado-half.right::after {
+                width: 28px;
+                height: 28px;
+                top: 32px;
+                left: 12px;
             }
         }
     </style>
 </head>
 <body>
+    <div class="honesty-strip" role="note">
+        <div class="honesty-inner">
+            <strong>Tunda is not a therapist and not emergency care.</strong>
+            If you might be in danger, use local emergency services or a crisis line from Help numbers.
+            This visit is not saved unless you tap Remember. Saved visits stay encrypted on this device.
+            <details>
+                <summary>What is stored, who can see it, and how to wipe</summary>
+                <ul>
+                    <li><strong>Not a therapist.</strong> Tunda is a companion. It does not diagnose, treat, or replace a clinician.</li>
+                    <li><strong>Not emergency care.</strong> Crisis replies can show local numbers. They are not a substitute for calling for help.</li>
+                    <li><strong>What is stored.</strong> Nothing, unless you choose Remember. Then this visit is encrypted on this machine (not a cloud chart).</li>
+                    <li><strong>Who sees trends.</strong> Mood, crisis flags, and engagement only if you opt in to clinician trends. No message transcripts are included.</li>
+                    <li><strong>How to wipe.</strong> Use Wipe saved memory below, or Don’t save for this visit. That deletes stored visits on this device.</li>
+                </ul>
+                <button type="button" class="wipe-btn" id="wipe-memory">Wipe saved memory</button>
+            </details>
+        </div>
+    </div>
+    <div class="cyber-grid"></div>
     <div class="container">
         <div class="main-panel">
             <div class="header">
+                <div class="hero-kicker"><i class="fas fa-satellite-dish"></i> Empathy OS // Live</div>
                 <div class="tunda-avatar" id="tunda-avatar">
+                    <div class="holo-aura"></div>
+                    <div class="avocado-stage" id="avocado-stage">
+                        <div class="avocado-half left"></div>
+                        <div class="avocado-glow-line"></div>
+                        <div class="avocado-half right"></div>
+                        <div class="slice-particles">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </div>
                     <div class="voice-node">
                         <div class="voice-ring"></div>
                         <div class="voice-ring"></div>
@@ -673,13 +1283,43 @@
                     </div>
                 </div>
                 <h1>Tunda</h1>
-                <p>Your Empathic Voice Companion</p>
+                <p>Futuristic emotional intelligence interface with a living core animation that reacts as you speak and connect.</p>
             </div>
 
             <div id="chat-container" class="chat-container"></div>
 
+            <div id="care-banner" class="care-banner" style="display:none;"></div>
+
             <div class="status" id="status">
                 <i class="fas fa-heart"></i> Ready to listen and support you...
+            </div>
+
+            <div class="consent-bar" id="consent-bar">
+                <span class="consent-copy">This visit is not saved unless you ask. Stored sessions are encrypted on this machine.</span>
+                <button type="button" class="consent-btn keep" id="remember-session">Remember this session</button>
+                <button type="button" class="consent-btn forget" id="forget-session">Don't save</button>
+                <button type="button" class="consent-btn keep" id="guide-now">Guide me now</button>
+                <span class="consent-status" id="consent-status"></span>
+            </div>
+
+            <div class="prefs-bar">
+                <label for="response-mode">Next reply</label>
+                <select id="response-mode" title="How should Tunda respond to your next message?">
+                    <option value="">Auto</option>
+                    <option value="listen">Listen &amp; reflect</option>
+                    <option value="coach">Gentle tips</option>
+                </select>
+                <label for="clinic-profile">Clinic profile</label>
+                <select id="clinic-profile" title="Companion allows informal chat if the model is down. Care profiles require Ollama.">
+                    <option value="companion">Companion</option>
+                    <option value="between_sessions">Between sessions</option>
+                    <option value="high_risk_watch">High-risk watch</option>
+                </select>
+                <label for="help-region">Help numbers</label>
+                <select id="help-region" title="Local emergency and crisis numbers">
+                    <option value="US">United States</option>
+                </select>
+                <div class="region-hint" id="region-hint">Emergency 911 · Crisis 988</div>
             </div>
 
             <div class="input-container">
@@ -703,6 +1343,28 @@
                 <h3><i class="fas fa-heart-pulse"></i> Personalized Care</h3>
                 <div id="care-plan-content"></div>
             </div>
+
+            <div id="resume-card" class="resume-card" style="display:none;">
+                <h3><i class="fas fa-clock-rotate-left"></i> Last visit</h3>
+                <p class="recap-text" id="resume-recap"></p>
+                <button type="button" class="consent-btn keep" id="resume-continue">Pick up from last time</button>
+                <button type="button" class="consent-btn forget" id="resume-fresh">Start fresh</button>
+            </div>
+
+            <div id="recap-card" class="recap-card">
+                <h3><i class="fas fa-file-lines"></i> Visit recap to share</h3>
+                <p class="recap-text" id="recap-text">Talk for a bit, then tap Remember if you want a recap saved.</p>
+                <button type="button" class="consent-btn keep" id="copy-recap">Copy recap</button>
+            </div>
+
+            <div id="clinician-card" class="clinician-card">
+                <h3><i class="fas fa-user-doctor"></i> Clinician trend view</h3>
+                <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                    <input type="checkbox" id="clinician-share">
+                    Share mood/crisis/engagement trends (no transcripts)
+                </label>
+                <div id="clinician-trends">Off until you opt in.</div>
+            </div>
         </div>
     </div>
 
@@ -717,14 +1379,35 @@
         const carePlanSection = document.getElementById('care-plan-section');
         const carePlanContent = document.getElementById('care-plan-content');
         const tundaAvatar = document.getElementById('tunda-avatar');
+        const avocadoStage = document.getElementById('avocado-stage');
 
         const clientId = 'web_' + Math.random().toString(36).substr(2, 9);
-        const ws = new WebSocket(`ws://localhost:8000/ws/${clientId}`);
+        const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${wsProto}//${location.host}/ws/${clientId}`);
 
         let isRecording = false;
         let mediaRecorder = null;
         let audioChunks = [];
         let recognition = null;
+        let avocadoSlicePlayed = false;
+        let speechGeneration = 0;
+        let isSpeakingReply = false;
+        let ttsAudioCtx = null;
+        let ttsSources = [];
+        let recBuffers = [];
+        let recContext = null;
+        let recStream = null;
+        let recNode = null;
+        let bargeInStream = null;
+        let bargeInRaf = 0;
+        let bargeInHits = 0;
+
+        function playAvocadoSlice() {
+            if (!avocadoStage || avocadoSlicePlayed) return;
+            avocadoSlicePlayed = true;
+            avocadoStage.classList.add('slice-active');
+            setTimeout(() => avocadoStage.classList.remove('slice-active'), 1450);
+        }
 
         // Initialize speech recognition if available
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -737,7 +1420,8 @@
 
         ws.onopen = function(event) {
             updateStatus('<i class="fas fa-heart"></i> Connected to Tunda - Ready to listen!', 'success');
-            tundaAvatar.style.animation = 'pulse 2s ease-in-out infinite';
+            tundaAvatar.classList.add('connected');
+            setTimeout(playAvocadoSlice, 350);
         };
 
         ws.onmessage = function(event) {
@@ -747,13 +1431,15 @@
 
         ws.onclose = function(event) {
             updateStatus('<i class="fas fa-exclamation-triangle"></i> Disconnected from server', 'error');
-            tundaAvatar.style.animation = 'none';
+            tundaAvatar.classList.remove('connected');
         };
         
         function handleWebSocketMessage(message) {
             switch(message.type) {
                 case 'session_started':
                     updateStatus(`<i class="fas fa-play"></i> Session started with Tunda`, 'success');
+                    applyMemoryStatus(message.memory);
+                    showResumeOffer(message.resume);
                     break;
                 case 'processing':
                     const stage = message.stage.replace('_', ' ');
@@ -763,7 +1449,9 @@
                     break;
                 case 'response':
                     addMessage(message.user_text, 'user');
-                    addMessage(message.response_text, 'assistant', message.emotion, message.emotion_confidence);
+                    const assistantEl = addMessage(message.response_text, 'assistant', message.emotion, message.emotion_confidence);
+                    attachCalibrationUI(assistantEl, message);
+                    attachCrisisHelp(assistantEl, message);
 
                     // Update status with personalized message if name is known
                     if (message.user_name) {
@@ -775,13 +1463,62 @@
                     tundaAvatar.classList.remove('listening', 'processing');
                     tundaAvatar.classList.add('speaking');
                     requestEmotionPatterns();
-                    speakResponse(message.response_text);
+                    speakResponse(
+                        message.response_text,
+                        message.emotion,
+                        message.interaction_mode,
+                        message.speech,
+                        message.grounding
+                    );
+                    applyMemoryStatus(message.memory);
+                    if (message.recap) setRecapText(message.recap);
+                    applyCareBanner(message);
+                    break;
+                case 'memory_consent_ack':
+                    applyMemoryStatus(message);
+                    if (message.recap) setRecapText(message.recap);
+                    updateStatus(
+                        message.persist_consent
+                            ? '<i class="fas fa-lock"></i> This session will be stored encrypted.'
+                            : '<i class="fas fa-user-secret"></i> This session will not be saved.',
+                        'success'
+                    );
+                    break;
+                case 'memory_wiped':
+                    applyMemoryStatus(message.memory);
+                    setRecapText('Talk for a bit, then tap Remember if you want a recap saved.');
+                    if (chatContainer) chatContainer.innerHTML = '';
+                    updateStatus('<i class="fas fa-eraser"></i> Saved memory wiped on this device.', 'success');
+                    addMessage('Saved visits on this device were deleted. This is a new, unsaved visit.', 'assistant');
+                    break;
+                case 'resume_ack':
+                    if (message.resumed && message.recap) {
+                        setRecapText(message.recap);
+                        addMessage('Picking up from last time:\n' + message.recap, 'assistant');
+                    }
+                    document.getElementById('resume-card').style.display = 'none';
+                    break;
+                case 'recap':
+                    if (message.recap) setRecapText(message.recap);
+                    break;
+                case 'clinician_share_ack':
+                    document.getElementById('clinician-share').checked = !!message.clinician_share;
+                    if (message.clinician_share) ws.send(JSON.stringify({ type: 'get_clinician_trends' }));
+                    break;
+                case 'clinician_trends':
+                    renderClinicianTrends(message);
                     break;
                 case 'emotion_patterns':
                     updateEmotionPatterns(message.patterns);
                     break;
+                case 'emotion_feedback_ack':
+                    updateStatus('<i class="fas fa-check"></i> Thanks — your mood feedback was saved.', 'success');
+                    break;
+                case 'response_feedback_ack':
+                    updateStatus('<i class="fas fa-check"></i> Thanks — we noted how that reply landed.', 'success');
+                    break;
                 case 'error':
-                    updateStatus(`<i class="fas fa-exclamation-circle"></i> ${message.message}`, 'error');
+                    updateStatus(`<i class="fas fa-exclamation-circle"></i> ${escapeHtml(message.message)}`, 'error');
                     tundaAvatar.classList.remove('listening', 'processing', 'speaking');
                     break;
             }
@@ -795,41 +1532,267 @@
             }
         }
 
-        function speakResponse(text) {
+        function stopBargeInMonitor() {
+            if (bargeInRaf) {
+                cancelAnimationFrame(bargeInRaf);
+                bargeInRaf = 0;
+            }
+            bargeInHits = 0;
+            if (bargeInStream) {
+                bargeInStream.getTracks().forEach((track) => track.stop());
+                bargeInStream = null;
+            }
+        }
+
+        function stopTtsAudio() {
+            ttsSources.forEach((src) => { try { src.stop(); } catch (err) {} });
+            ttsSources = [];
+        }
+
+        function stopSpeaking(startListening) {
+            speechGeneration += 1;
+            isSpeakingReply = false;
+            stopBargeInMonitor();
+            stopTtsAudio();
             if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.1;
-                utterance.volume = 0.8;
+                speechSynthesis.cancel();
+            }
+            tundaAvatar.classList.remove('speaking');
+            if (startListening && !isRecording) {
+                startVoiceRecording();
+            }
+        }
 
-                // Try to use a female voice
-                const voices = speechSynthesis.getVoices();
-                const femaleVoice = voices.find(voice =>
-                    voice.name.toLowerCase().includes('female') ||
-                    voice.name.toLowerCase().includes('zira') ||
-                    voice.name.toLowerCase().includes('hazel')
-                );
-                if (femaleVoice) {
-                    utterance.voice = femaleVoice;
+        function speechProfile(emotion, mode, serverProfile) {
+            if (serverProfile && typeof serverProfile.rate === 'number') {
+                return serverProfile;
+            }
+            if (mode === 'escalate' || mode === 'crisis') {
+                return { rate: 0.78, pitch: 0.94, volume: 0.74, pause_ms: 360 };
+            }
+            if (mode === 'grounding') {
+                return { rate: 0.76, pitch: 0.96, volume: 0.76, pause_ms: 1400 };
+            }
+            const profiles = {
+                sad: { rate: 0.82, pitch: 0.93, volume: 0.78, pause_ms: 320 },
+                anxious: { rate: 0.84, pitch: 0.97, volume: 0.76, pause_ms: 300 },
+                angry: { rate: 0.85, pitch: 0.95, volume: 0.78, pause_ms: 280 },
+                calm: { rate: 0.86, pitch: 0.97, volume: 0.80, pause_ms: 280 },
+                happy: { rate: 0.95, pitch: 1.04, volume: 0.86, pause_ms: 180 },
+                neutral: { rate: 0.92, pitch: 1.00, volume: 0.84, pause_ms: 220 }
+            };
+            return profiles[emotion] || profiles.neutral;
+        }
+
+        function splitSpeechUnits(text) {
+            const cleaned = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return [];
+            return cleaned.split(/(?<=[.!?])\s+/).filter(Boolean);
+        }
+
+        function pickCareVoice() {
+            const voices = speechSynthesis.getVoices();
+            return voices.find((voice) => {
+                const name = voice.name.toLowerCase();
+                return name.includes('female') || name.includes('samantha') ||
+                    name.includes('zira') || name.includes('hazel') || name.includes('karen');
+            }) || null;
+        }
+
+        function startBargeInMonitor(generation) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+            navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                if (generation !== speechGeneration || !isSpeakingReply) {
+                    stream.getTracks().forEach((track) => track.stop());
+                    return;
                 }
-
-                // Remove speaking animation when done
-                utterance.onend = function() {
-                    tundaAvatar.classList.remove('speaking');
+                bargeInStream = stream;
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = ctx.createMediaStreamSource(stream);
+                const analyser = ctx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+                const data = new Uint8Array(analyser.fftSize);
+                const listen = () => {
+                    if (generation !== speechGeneration || !isSpeakingReply) {
+                        ctx.close().catch(() => {});
+                        return;
+                    }
+                    analyser.getByteTimeDomainData(data);
+                    let sum = 0;
+                    for (let i = 0; i < data.length; i += 1) {
+                        const v = (data[i] - 128) / 128;
+                        sum += v * v;
+                    }
+                    const rms = Math.sqrt(sum / data.length);
+                    if (rms > 0.08) {
+                        bargeInHits += 1;
+                        if (bargeInHits >= 6) {
+                            ctx.close().catch(() => {});
+                            stopSpeaking(true);
+                            return;
+                        }
+                    } else {
+                        bargeInHits = 0;
+                    }
+                    bargeInRaf = requestAnimationFrame(listen);
                 };
-
-                speechSynthesis.speak(utterance);
-            } else {
-                // If no speech synthesis, remove speaking animation after a delay
                 setTimeout(() => {
-                    tundaAvatar.classList.remove('speaking');
-                }, 3000);
+                    if (generation === speechGeneration && isSpeakingReply) {
+                        bargeInRaf = requestAnimationFrame(listen);
+                    }
+                }, 350);
+            }).catch(() => {});
+        }
+
+        function speakUnit(text, profile, voice) {
+            return new Promise((resolve) => {
+                if (!('speechSynthesis' in window)) {
+                    resolve();
+                    return;
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = profile.rate;
+                utterance.pitch = profile.pitch;
+                utterance.volume = profile.volume;
+                if (voice) utterance.voice = voice;
+                utterance.onend = resolve;
+                utterance.onerror = resolve;
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        async function playWavBase64(b64, generation) {
+            const binary = atob(b64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+            if (!ttsAudioCtx) ttsAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ttsAudioCtx.state === 'suspended') await ttsAudioCtx.resume();
+            const buffer = await ttsAudioCtx.decodeAudioData(bytes.buffer.slice(0));
+            if (generation !== speechGeneration) return;
+            await new Promise((resolve) => {
+                const src = ttsAudioCtx.createBufferSource();
+                src.buffer = buffer;
+                src.connect(ttsAudioCtx.destination);
+                ttsSources.push(src);
+                src.onended = resolve;
+                src.start();
+            });
+        }
+
+        async function speakViaServerStream(text, emotion, generation) {
+            const res = await fetch('/api/tts/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, emotion })
+            });
+            if (!res.ok || !res.body) return false;
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let leftover = '';
+            let played = false;
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                if (generation !== speechGeneration) {
+                    try { await reader.cancel(); } catch (err) {}
+                    return played;
+                }
+                leftover += decoder.decode(value, { stream: true });
+                const lines = leftover.split('\n');
+                leftover = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const event = JSON.parse(line);
+                    if (event.first && event.elapsed_ms) {
+                        updateStatus(`<i class="fas fa-volume-up"></i> First audio ${Math.round(event.elapsed_ms)} ms`, 'ready');
+                    }
+                    if (event.audio_b64) {
+                        played = true;
+                        await playWavBase64(event.audio_b64, generation);
+                    }
+                }
+            }
+            return played;
+        }
+
+        async function speakResponse(text, emotion, mode, serverProfile, grounding) {
+            stopSpeaking(false);
+            const generation = speechGeneration;
+            const profile = speechProfile(emotion, grounding ? 'grounding' : mode, serverProfile);
+            let units = splitSpeechUnits(text);
+            let pauses = units.map(() => profile.pause_ms || 220);
+            if (grounding && Array.isArray(grounding.steps) && grounding.steps.length) {
+                units = grounding.steps.map((step) => step.text).filter(Boolean);
+                pauses = grounding.steps.map((step) => Number(step.pause_ms) || 900);
+            }
+            if (!units.length) {
+                tundaAvatar.classList.remove('speaking');
+                return;
+            }
+
+            isSpeakingReply = true;
+            tundaAvatar.classList.add('speaking');
+            updateStatus(
+                grounding
+                    ? '<i class="fas fa-wind"></i> Guiding you — talk or tap to stop'
+                    : '<i class="fas fa-volume-up"></i> Speaking — talk or tap to interrupt',
+                'ready'
+            );
+            startBargeInMonitor(generation);
+
+            const spokenText = units.join(' ');
+            try {
+                const streamed = await speakViaServerStream(spokenText, emotion, generation);
+                if (streamed) {
+                    if (generation === speechGeneration) {
+                        isSpeakingReply = false;
+                        stopBargeInMonitor();
+                        tundaAvatar.classList.remove('speaking');
+                    }
+                    return;
+                }
+            } catch (err) {
+                /* browser voice fallback */
+            }
+
+            if (!('speechSynthesis' in window)) {
+                tundaAvatar.classList.remove('speaking');
+                return;
+            }
+            const voice = pickCareVoice();
+            for (let i = 0; i < units.length; i += 1) {
+                if (generation !== speechGeneration) return;
+                await speakUnit(units[i], profile, voice);
+                if (generation !== speechGeneration) return;
+                if (i < units.length - 1) {
+                    await new Promise((resolve) => setTimeout(resolve, pauses[i] || 400));
+                }
+            }
+
+            if (generation === speechGeneration) {
+                isSpeakingReply = false;
+                stopBargeInMonitor();
+                tundaAvatar.classList.remove('speaking');
             }
         }
         
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function addMessage(text, sender, emotion = null, confidence = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
+
+            const safeText = escapeHtml(text);
+            const safeEmotion = emotion ? escapeHtml(emotion) : '';
 
             let content = '';
             if (sender === 'user') {
@@ -837,20 +1800,20 @@
                     <div class="message-header">
                         <i class="fas fa-user"></i> You
                     </div>
-                    <div>${text}</div>
+                    <div>${safeText}</div>
                 `;
             } else {
                 content = `
                     <div class="message-header">
                         <i class="fas fa-microphone-alt"></i> Tunda
                     </div>
-                    <div>${text}</div>
+                    <div>${safeText}</div>
                 `;
                 if (emotion) {
                     const emotionIcon = getEmotionIcon(emotion);
                     content += `
                         <div class="emotion-info">
-                            ${emotionIcon} <span class="emotion-badge">${emotion}</span>
+                            ${emotionIcon} <span class="emotion-badge">${safeEmotion}</span>
                             <span>${(confidence * 100).toFixed(0)}% confidence</span>
                         </div>
                     `;
@@ -871,6 +1834,126 @@
                     messageDiv.style.transform = 'translateY(0)';
                 }, 100);
             }
+            return messageDiv;
+        }
+
+        function telHref(value) {
+            const digits = String(value || '').replace(/[^\d+]/g, '');
+            return digits ? `tel:${digits}` : '';
+        }
+
+        function attachCrisisHelp(messageEl, msg) {
+            const resources = msg.crisis_resources;
+            const tier = msg.safety_tier || msg.interaction_mode;
+            if (!messageEl || !resources || (tier !== 'self_harm' && tier !== 'imminent' && tier !== 'escalate')) {
+                return;
+            }
+            const emergency = resources.emergency || '';
+            const line = resources.crisis_line || '';
+            const label = resources.crisis_label || 'a local crisis line';
+            const url = resources.crisis_url || '';
+            const title = tier === 'imminent' ? 'Get help now' : 'You are not alone';
+            const card = document.createElement('div');
+            card.className = 'crisis-help-card';
+            card.innerHTML = `
+                <strong><i class="fas fa-life-ring"></i> ${escapeHtml(title)}</strong>
+                <p>If you are in immediate danger, call emergency services. Tunda is a companion, not a crisis line.</p>
+                <p>
+                    ${emergency ? `<a href="${telHref(emergency)}">Emergency: ${escapeHtml(emergency)}</a><br>` : ''}
+                    ${line ? `<a href="${telHref(line) || (url || '#')}">${escapeHtml(label)}: ${escapeHtml(line)}</a>` : ''}
+                </p>
+            `;
+            messageEl.appendChild(card);
+        }
+
+        function attachCalibrationUI(messageEl, msg) {
+            if (!messageEl || ws.readyState !== WebSocket.OPEN) return;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'calibration-feedback';
+            wrap.innerHTML = `
+                <div class="cal-hint">Optional — helps Tunda tune gently to you. Skip if you prefer.</div>
+                <div class="cal-row cal-emotion-row">
+                    <span>Mood guess:</span>
+                    <button type="button" class="cal-btn cal-emotion-yes">Feels right</button>
+                    <button type="button" class="cal-btn cal-emotion-no">Not quite</button>
+                </div>
+                <div class="cal-row cal-felt-row" style="display:none;">
+                    <span>I felt more:</span>
+                    <select class="cal-felt-select" aria-label="How you felt">
+                        <option value="">Choose…</option>
+                        <option value="happy">happy</option>
+                        <option value="sad">sad</option>
+                        <option value="angry">angry</option>
+                        <option value="anxious">anxious</option>
+                        <option value="calm">calm</option>
+                        <option value="neutral">neutral</option>
+                    </select>
+                    <button type="button" class="cal-btn cal-send-felt">Send</button>
+                </div>
+                <div class="cal-row cal-help-row">
+                    <span>This reply:</span>
+                    <button type="button" class="cal-btn cal-help-yes">Helpful</button>
+                    <button type="button" class="cal-btn cal-help-no">Not really</button>
+                </div>
+                <div class="cal-meta"></div>
+            `;
+            const meta = wrap.querySelector('.cal-meta');
+            const mode = msg.interaction_mode || 'listen';
+            const tune = (typeof msg.fusion_text_boost === 'number') ? msg.fusion_text_boost.toFixed(2) : '0.00';
+            meta.textContent = `Reply style: ${mode} · calibration weight ${tune} (higher = trust your words more)`;
+
+            let emotionLocked = false;
+            let helpLocked = false;
+
+            const emotionRow = wrap.querySelector('.cal-emotion-row');
+            const feltRow = wrap.querySelector('.cal-felt-row');
+            const feltSelect = wrap.querySelector('.cal-felt-select');
+
+            wrap.querySelector('.cal-emotion-yes').addEventListener('click', () => {
+                if (emotionLocked) return;
+                emotionLocked = true;
+                ws.send(JSON.stringify({ type: 'emotion_feedback', match: true }));
+                emotionRow.querySelectorAll('button').forEach(b => b.disabled = true);
+                feltRow.style.display = 'none';
+            });
+
+            wrap.querySelector('.cal-emotion-no').addEventListener('click', () => {
+                if (emotionLocked) return;
+                feltRow.style.display = 'flex';
+                wrap.querySelector('.cal-emotion-no').disabled = true;
+                wrap.querySelector('.cal-emotion-yes').disabled = true;
+            });
+
+            wrap.querySelector('.cal-send-felt').addEventListener('click', () => {
+                if (emotionLocked) return;
+                const v = feltSelect.value;
+                if (!v) {
+                    feltSelect.focus();
+                    return;
+                }
+                emotionLocked = true;
+                ws.send(JSON.stringify({ type: 'emotion_feedback', match: false, felt_emotion: v }));
+                feltRow.querySelectorAll('button').forEach(b => b.disabled = true);
+                feltSelect.disabled = true;
+            });
+
+            wrap.querySelector('.cal-help-yes').addEventListener('click', () => {
+                if (helpLocked) return;
+                helpLocked = true;
+                ws.send(JSON.stringify({ type: 'response_feedback', helpful: true }));
+                wrap.querySelector('.cal-help-row').querySelectorAll('button').forEach(b => b.disabled = true);
+            });
+
+            wrap.querySelector('.cal-help-no').addEventListener('click', () => {
+                if (helpLocked) return;
+                helpLocked = true;
+                ws.send(JSON.stringify({ type: 'response_feedback', helpful: false }));
+                wrap.querySelector('.cal-help-row').querySelectorAll('button').forEach(b => b.disabled = true);
+            });
+
+            messageEl.appendChild(wrap);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         function getEmotionIcon(emotion) {
@@ -886,64 +1969,140 @@
         }
         
         function sendMessage() {
+            stopSpeaking(false);
             const text = textInput.value.trim();
             if (!text) return;
 
-            ws.send(JSON.stringify({
-                type: 'text_input',
-                text: text
-            }));
+            const payload = { type: 'text_input', text: text };
+            const rmEl = document.getElementById('response-mode');
+            if (rmEl && rmEl.value) {
+                payload.response_mode = rmEl.value;
+            }
+            const regionEl = document.getElementById('help-region');
+            if (regionEl && regionEl.value) {
+                payload.region = regionEl.value;
+            }
+            const clinicEl = document.getElementById('clinic-profile');
+            if (clinicEl && clinicEl.value) {
+                payload.clinic_profile = clinicEl.value;
+            }
+            ws.send(JSON.stringify(payload));
 
             textInput.value = '';
         }
 
-        function startVoiceRecording() {
-            if (!recognition) {
-                updateStatus('<i class="fas fa-exclamation-triangle"></i> Speech recognition not supported in this browser', 'error');
-                return;
+        function encodeWav(samples, sampleRate) {
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+            const writeStr = (offset, str) => {
+                for (let i = 0; i < str.length; i += 1) view.setUint8(offset + i, str.charCodeAt(i));
+            };
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+            let offset = 44;
+            for (let i = 0; i < samples.length; i += 1, offset += 2) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
             }
-
-            if (isRecording) {
-                stopVoiceRecording();
-                return;
-            }
-
-            isRecording = true;
-            voiceButton.classList.add('recording');
-            voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
-            updateStatus('<i class="fas fa-microphone"></i> Listening... Speak now!', 'recording');
-            tundaAvatar.classList.add('listening');
-
-            recognition.onresult = function(event) {
-                const transcript = event.results[0][0].transcript;
-                textInput.value = transcript;
-                sendMessage();
-            };
-
-            recognition.onerror = function(event) {
-                updateStatus('<i class="fas fa-exclamation-circle"></i> Speech recognition error', 'error');
-                stopVoiceRecording();
-            };
-
-            recognition.onend = function() {
-                stopVoiceRecording();
-            };
-
-            recognition.start();
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+            return btoa(binary);
         }
 
-        function stopVoiceRecording() {
-            if (!isRecording) return;
+        async function startVoiceRecording() {
+            if (isRecording) {
+                await stopVoiceRecording();
+                return;
+            }
+            stopSpeaking(false);
+            isRecording = true;
+            recBuffers = [];
+            voiceButton.classList.add('recording');
+            voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+            updateStatus('<i class="fas fa-microphone"></i> Listening... Speak now, then tap to send.', 'recording');
+            tundaAvatar.classList.add('listening');
 
+            try {
+                recStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 }
+                });
+                recContext = new AudioContext({ sampleRate: 16000 });
+                const source = recContext.createMediaStreamSource(recStream);
+                recNode = recContext.createScriptProcessor(4096, 1, 1);
+                recNode.onaudioprocess = (event) => {
+                    recBuffers.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+                };
+                const mute = recContext.createGain();
+                mute.gain.value = 0;
+                source.connect(recNode);
+                recNode.connect(mute);
+                mute.connect(recContext.destination);
+            } catch (err) {
+                if (recognition) {
+                    recognition.onresult = function(event) {
+                        textInput.value = event.results[0][0].transcript;
+                        sendMessage();
+                    };
+                    recognition.onerror = function() {
+                        updateStatus('<i class="fas fa-exclamation-circle"></i> Speech recognition error', 'error');
+                        stopVoiceRecording();
+                    };
+                    recognition.onend = function() { stopVoiceRecording(); };
+                    recognition.start();
+                    return;
+                }
+                updateStatus('<i class="fas fa-exclamation-triangle"></i> Microphone not available', 'error');
+                isRecording = false;
+                voiceButton.classList.remove('recording');
+            }
+        }
+
+        async function stopVoiceRecording() {
+            if (!isRecording) return;
             isRecording = false;
             voiceButton.classList.remove('recording');
             voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-            updateStatus('<i class="fas fa-heart"></i> Ready to listen and support you...', 'ready');
             tundaAvatar.classList.remove('listening');
-
             if (recognition) {
-                recognition.stop();
+                try { recognition.stop(); } catch (err) {}
             }
+            if (recNode) { try { recNode.disconnect(); } catch (err) {} recNode = null; }
+            if (recStream) { recStream.getTracks().forEach((t) => t.stop()); recStream = null; }
+            const sampleRate = recContext ? recContext.sampleRate : 16000;
+            if (recContext) { try { await recContext.close(); } catch (err) {} recContext = null; }
+
+            if (!recBuffers.length) {
+                updateStatus('<i class="fas fa-heart"></i> Ready to listen and support you...', 'ready');
+                return;
+            }
+            let length = 0;
+            recBuffers.forEach((b) => { length += b.length; });
+            const samples = new Float32Array(length);
+            let off = 0;
+            recBuffers.forEach((b) => { samples.set(b, off); off += b.length; });
+            recBuffers = [];
+            const wavB64 = encodeWav(samples, sampleRate);
+            updateStatus('<i class="fas fa-brain"></i> Transcribing with noise-robust STT...', 'processing');
+            const payload = { type: 'audio_input', audio_b64: wavB64 };
+            const rmEl = document.getElementById('response-mode');
+            if (rmEl && rmEl.value) payload.response_mode = rmEl.value;
+            const regionEl = document.getElementById('help-region');
+            if (regionEl && regionEl.value) payload.region = regionEl.value;
+            const clinicEl = document.getElementById('clinic-profile');
+            if (clinicEl && clinicEl.value) payload.clinic_profile = clinicEl.value;
+            ws.send(JSON.stringify(payload));
         }
 
         function requestEmotionPatterns() {
@@ -1058,9 +2217,170 @@
             carePlanSection.style.display = 'block';
         }
         
+        const helpRegion = document.getElementById('help-region');
+        const regionHint = document.getElementById('region-hint');
+        const REGION_STORAGE_KEY = 'tunda_help_region';
+
+        function formatRegionHint(region) {
+            if (!region) return '';
+            const crisis = region.crisis_line || '';
+            const emergency = region.emergency || '';
+            if (String(crisis).startsWith('http')) {
+                return `Emergency ${emergency} · International crisis directory`;
+            }
+            return `Emergency ${emergency} · Crisis ${crisis}`;
+        }
+
+        function applyRegionSelection(regions, code) {
+            const selected = regions.find((row) => row.code === code) || regions[0];
+            if (!selected) return;
+            helpRegion.value = selected.code;
+            regionHint.textContent = formatRegionHint(selected);
+            try { localStorage.setItem(REGION_STORAGE_KEY, selected.code); } catch (err) {}
+        }
+
+        async function loadHelpRegions() {
+            if (!helpRegion) return;
+            try {
+                const res = await fetch('/api/crisis-regions');
+                const data = await res.json();
+                const regions = data.regions || [];
+                helpRegion.innerHTML = regions.map((row) =>
+                    `<option value="${row.code}">${row.label}</option>`
+                ).join('');
+                const saved = (() => { try { return localStorage.getItem(REGION_STORAGE_KEY); } catch (err) { return null; } })();
+                applyRegionSelection(regions, saved || data.default || 'US');
+                helpRegion.addEventListener('change', () => applyRegionSelection(regions, helpRegion.value));
+            } catch (err) {
+                regionHint.textContent = 'Emergency 911 · Crisis 988';
+            }
+        }
+
+        function applyCareBanner(info) {
+            const banner = document.getElementById('care-banner');
+            if (!banner || !info) return;
+            if (info.care_mode && info.llm_online === false) {
+                banner.style.display = 'block';
+                banner.textContent = 'Not in care mode: Ollama is offline. Crisis routing and grounding still work. Switch to Companion for informal chat, or start Ollama.';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        async function loadClinicStatus() {
+            try {
+                const res = await fetch('/api/clinic/status');
+                const data = await res.json();
+                const sel = document.getElementById('clinic-profile');
+                if (sel && data.profile) sel.value = data.profile;
+                if (sel && data.allow_web_profile_switch === false) sel.disabled = true;
+                applyCareBanner(data);
+            } catch (err) {}
+        }
+
+        function applyMemoryStatus(status) {
+            const el = document.getElementById('consent-status');
+            if (!el || !status) return;
+            if (status.persist_consent === true) {
+                el.textContent = status.encrypted ? 'Encrypted save: on' : 'Save: on';
+            } else if (status.persist_consent === false) {
+                el.textContent = 'Not saving this session';
+            } else {
+                el.textContent = 'Not saved unless you choose';
+            }
+        }
+
+        function sendMemoryConsent(persist) {
+            if (ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: 'memory_consent', persist: persist }));
+        }
+
+        function setRecapText(text) {
+            const el = document.getElementById('recap-text');
+            if (el && text) el.textContent = text;
+        }
+
+        function showResumeOffer(resume) {
+            const card = document.getElementById('resume-card');
+            const body = document.getElementById('resume-recap');
+            if (!card || !resume || !resume.recap) {
+                if (card) card.style.display = 'none';
+                return;
+            }
+            body.textContent = resume.recap;
+            setRecapText(resume.recap);
+            card.style.display = 'block';
+        }
+
+        function renderClinicianTrends(payload) {
+            const el = document.getElementById('clinician-trends');
+            if (!el) return;
+            if (!payload || !payload.enabled) {
+                el.textContent = 'Off until you opt in. No transcripts are included.';
+                return;
+            }
+            const days = payload.days || [];
+            if (!days.length) {
+                el.textContent = 'No saved visits yet. Remember a session first.';
+                return;
+            }
+            el.innerHTML = days.map((day) => {
+                const flags = Object.keys(day.crisis_flags || {}).join(', ') || 'none';
+                return `<div class="trend-row"><span>${escapeHtml(day.date)}</span><span>${day.top_mood} · ${day.turns} turns · flags: ${escapeHtml(flags)}</span></div>`;
+            }).join('');
+        }
+
+        loadHelpRegions();
+        loadClinicStatus();
+        const clinicSel = document.getElementById('clinic-profile');
+        if (clinicSel) clinicSel.addEventListener('change', loadClinicStatus);
+
         // Event listeners
         sendButton.addEventListener('click', sendMessage);
         voiceButton.addEventListener('click', startVoiceRecording);
+        const rememberBtn = document.getElementById('remember-session');
+        const forgetBtn = document.getElementById('forget-session');
+        if (rememberBtn) rememberBtn.addEventListener('click', () => sendMemoryConsent(true));
+        if (forgetBtn) forgetBtn.addEventListener('click', () => sendMemoryConsent(false));
+        const wipeBtn = document.getElementById('wipe-memory');
+        if (wipeBtn) {
+            wipeBtn.addEventListener('click', () => {
+                if (!confirm('Delete all remembered visits on this device? This cannot be undone.')) return;
+                ws.send(JSON.stringify({ type: 'memory_wipe' }));
+            });
+        }
+        const resumeContinue = document.getElementById('resume-continue');
+        const resumeFresh = document.getElementById('resume-fresh');
+        if (resumeContinue) resumeContinue.addEventListener('click', () => ws.send(JSON.stringify({ type: 'resume_session' })));
+        if (resumeFresh) resumeFresh.addEventListener('click', () => ws.send(JSON.stringify({ type: 'resume_session', fresh: true })));
+        const copyRecap = document.getElementById('copy-recap');
+        if (copyRecap) {
+            copyRecap.addEventListener('click', async () => {
+                const text = document.getElementById('recap-text')?.textContent || '';
+                try { await navigator.clipboard.writeText(text); updateStatus('<i class="fas fa-copy"></i> Recap copied.', 'success'); } catch (err) {}
+            });
+        }
+        const clinicianShare = document.getElementById('clinician-share');
+        if (clinicianShare) {
+            clinicianShare.addEventListener('change', () => {
+                ws.send(JSON.stringify({ type: 'clinician_share', enabled: clinicianShare.checked }));
+            });
+        }
+        const guideNowBtn = document.getElementById('guide-now');
+        if (guideNowBtn) {
+            guideNowBtn.addEventListener('click', () => {
+                textInput.value = 'Please guide me through a grounding exercise';
+                const modeEl = document.getElementById('response-mode');
+                if (modeEl) modeEl.value = 'coach';
+                sendMessage();
+            });
+        }
+
+        textInput.addEventListener('keydown', function(e) {
+            if (isSpeakingReply && e.key !== 'Shift' && e.key !== 'Meta' && e.key !== 'Control' && e.key !== 'Alt') {
+                stopSpeaking(false);
+            }
+        });
 
         textInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -1078,6 +2398,10 @@
 
         // Tunda avatar click interaction
         tundaAvatar.addEventListener('click', function() {
+            if (isSpeakingReply) {
+                stopSpeaking(true);
+                return;
+            }
             this.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 this.style.transform = 'scale(1)';
@@ -1104,6 +2428,7 @@
 
         // Request initial emotion patterns
         setTimeout(requestEmotionPatterns, 1000);
+        setTimeout(playAvocadoSlice, 900);
 
         // Add some initial welcome message
         setTimeout(() => {

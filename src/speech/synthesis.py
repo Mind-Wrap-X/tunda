@@ -5,6 +5,9 @@ import logging
 import tempfile
 import subprocess
 import os
+import re
+import base64
+import time as time_mod
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 from dataclasses import dataclass
@@ -12,8 +15,14 @@ import time
 
 from ..utils.config import config
 from ..utils.audio import AudioProcessor
+from .voice import apply_speech_profile, get_speech_profile
+from .stream import float_to_wav_bytes, split_for_streaming
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_ssml(text: str) -> str:
+    return re.sub(r"<[^>]+>", " ", text or "").strip()
 
 
 @dataclass
@@ -58,9 +67,10 @@ class PiperTTSProvider:
         
         return voices
     
-    def synthesize(self, text: str, voice: Optional[str] = None) -> SynthesisResult:
+    def synthesize(self, text: str, voice: Optional[str] = None, speaking_rate: float = 1.0) -> SynthesisResult:
         """Synthesize speech from text using Piper."""
         start_time = time.time()
+        text = _strip_ssml(text)
 
         try:
             # Choose voice
@@ -68,10 +78,10 @@ class PiperTTSProvider:
 
             # If using system provider or voice is "default", skip Piper
             if self.config.provider == "system" or voice_name == "default":
-                return self._synthesize_with_system_tts(text, start_time)
+                return self._synthesize_with_system_tts(text, start_time, speaking_rate=speaking_rate)
 
             # Try to use piper-tts if available
-            audio = self._synthesize_with_piper(text, voice_name)
+            audio = self._synthesize_with_piper(text, voice_name, speaking_rate=speaking_rate)
 
             if audio is not None:
                 synthesis_time = time.time() - start_time
@@ -90,7 +100,7 @@ class PiperTTSProvider:
             logger.error(f"Piper TTS synthesis failed: {e}")
             return self._synthesize_with_system_tts(text, start_time)
     
-    def _synthesize_with_piper(self, text: str, voice: str) -> Optional[np.ndarray]:
+    def _synthesize_with_piper(self, text: str, voice: str, speaking_rate: float = 1.0) -> Optional[np.ndarray]:
         """Synthesize using Piper TTS."""
         try:
             # Check if piper is available
@@ -110,10 +120,12 @@ class PiperTTSProvider:
             
             try:
                 # Run Piper TTS
+                length_scale = max(0.75, min(1.5, 1.0 / max(float(speaking_rate), 0.55)))
                 cmd = [
                     "piper",
                     "--model", voice,
-                    "--output_file", audio_file_path
+                    "--output_file", audio_file_path,
+                    "--length-scale", f"{length_scale:.2f}",
                 ]
                 
                 with open(text_file_path, 'r') as input_file:
@@ -151,7 +163,7 @@ class PiperTTSProvider:
             logger.warning(f"Piper TTS error: {e}")
             return None
     
-    def _synthesize_with_system_tts(self, text: str, start_time: float) -> SynthesisResult:
+    def _synthesize_with_system_tts(self, text: str, start_time: float, speaking_rate: float = 1.0) -> SynthesisResult:
         """Fallback to system TTS."""
         try:
             # Try different system TTS options
@@ -163,7 +175,7 @@ class PiperTTSProvider:
             
             # macOS say command
             elif os.name == 'posix' and os.uname().sysname == 'Darwin':
-                audio = self._synthesize_with_say(text)
+                audio = self._synthesize_with_say(text, speaking_rate=speaking_rate)
             
             # Linux espeak
             elif os.name == 'posix':
@@ -230,15 +242,15 @@ class PiperTTSProvider:
             logger.warning(f"SAPI TTS error: {e}")
             return None
     
-    def _synthesize_with_say(self, text: str) -> Optional[np.ndarray]:
+    def _synthesize_with_say(self, text: str, speaking_rate: float = 1.0) -> Optional[np.ndarray]:
         """Synthesize using macOS say command."""
         try:
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_path = temp_file.name
             
-            # Run say command
+            wpm = int(np.clip(170 * float(speaking_rate), 110, 200))
             result = subprocess.run([
-                "say", "-o", temp_path, text
+                "say", "-r", str(wpm), "-o", temp_path, "--data-format=LEI16@22050", text
             ], capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0 and os.path.exists(temp_path):
@@ -327,9 +339,10 @@ class TextToSpeechPipeline:
         
         # Adjust text for better synthesis
         text = self._prepare_text_for_synthesis(text)
+        profile = get_speech_profile(emotion)
         
         # Synthesize
-        result = self.provider.synthesize(text, voice)
+        result = self.provider.synthesize(text, voice, speaking_rate=profile.rate)
         
         # Apply post-processing if needed
         if result.success and self.config.emotion_adaptive:
@@ -343,6 +356,28 @@ class TextToSpeechPipeline:
         for chunk in chunks:
             if chunk.strip():
                 yield self.synthesize(chunk, emotion=emotion)
+
+    def iter_stream_events(self, text: str, emotion: Optional[str] = None):
+        """Yield JSON-serializable WAV chunks; first clause is synthesized first."""
+        started = time.time()
+        first_max = int(getattr(self.config, "first_chunk_chars", 64))
+        later_max = int(getattr(self.config, "stream_chunk_chars", 140))
+        for index, chunk in enumerate(split_for_streaming(text, first_max=first_max, later_max=later_max)):
+            result = self.synthesize(chunk, emotion=emotion)
+            elapsed_ms = (time.time() - started) * 1000.0
+            event = {
+                "index": index,
+                "first": index == 0,
+                "text": chunk,
+                "elapsed_ms": round(elapsed_ms, 1),
+                "success": bool(result.success and len(result.audio) > 0),
+                "sample_rate": result.sample_rate,
+                "voice": result.voice_used,
+            }
+            if event["success"]:
+                wav = float_to_wav_bytes(result.audio, result.sample_rate)
+                event["audio_b64"] = base64.b64encode(wav).decode("ascii")
+            yield event
     
     def _choose_voice_for_emotion(self, emotion: Optional[str]) -> str:
         """Choose appropriate voice for emotion."""
@@ -365,10 +400,7 @@ class TextToSpeechPipeline:
         text = text.replace('"', '')
         text = text.replace("'", '')
         
-        # Add pauses for better pacing
-        text = text.replace('. ', '. <break time="0.5s"/> ')
-        text = text.replace('? ', '? <break time="0.3s"/> ')
-        text = text.replace('! ', '! <break time="0.3s"/> ')
+        text = _strip_ssml(text)
         
         # Limit length
         if len(text) > 500:
@@ -382,43 +414,17 @@ class TextToSpeechPipeline:
     def _split_text_for_stream(self, text: str) -> List[str]:
         if not self.config.streaming:
             return [text]
-        max_chars = max(40, self.config.stream_chunk_chars)
-        segments = []
-        current = ""
-        for part in text.split(". "):
-            if len(current) + len(part) + 2 <= max_chars:
-                current = f"{current} {part}".strip()
-            else:
-                if current:
-                    segments.append(current)
-                current = part
-        if current:
-            segments.append(current)
-        return segments
+        first_max = int(getattr(self.config, "first_chunk_chars", 64))
+        later_max = max(40, self.config.stream_chunk_chars)
+        return split_for_streaming(text, first_max=first_max, later_max=later_max)
     
     def _apply_emotion_processing(self, audio: np.ndarray, emotion: Optional[str]) -> np.ndarray:
-        """Apply emotion-specific audio processing."""
+        """Apply care-first emotion-adaptive rate, pitch, and volume."""
         if not emotion or len(audio) == 0:
             return audio
-        
         try:
-            # Simple emotion-based processing
-            if emotion == 'happy':
-                # Slightly increase pitch and tempo
-                audio = self._adjust_pitch(audio, factor=1.1)
-            elif emotion == 'sad':
-                # Slightly decrease pitch and tempo
-                audio = self._adjust_pitch(audio, factor=0.9)
-            elif emotion == 'angry':
-                # Increase volume and add slight distortion
-                audio = audio * 1.2
-                audio = np.clip(audio, -1.0, 1.0)
-            elif emotion == 'calm':
-                # Smooth and soften
-                audio = self._smooth_audio(audio)
-            
-            return audio
-            
+            profile = get_speech_profile(emotion)
+            return apply_speech_profile(audio, self.provider.audio_processor.sample_rate, profile)
         except Exception as e:
             logger.warning(f"Emotion processing failed: {e}")
             return audio

@@ -43,8 +43,10 @@ class EmotionFusion:
         self,
         audio_pred: EmotionPrediction,
         text: str,
-        asr_confidence: float
+        asr_confidence: float,
+        text_boost: float = 0.0,
     ) -> EmotionPrediction:
+        """Fuse audio-based emotion with text; text_boost (0–~0.5) trusts words more (user calibration)."""
         sentiment = self.analyze_text(text)
         text_emotion = self._map_sentiment_to_emotion(sentiment, text)
         audio_weight = 1.0 - min(0.8, max(0.0, asr_confidence))
@@ -52,6 +54,11 @@ class EmotionFusion:
         if sentiment.label == "neutral":
             text_weight *= 0.4
             audio_weight = 1.0 - text_weight
+
+        # Calibration from user feedback: shift weight toward lexical/text path
+        boost = max(0.0, min(0.45, float(text_boost)))
+        audio_weight *= 1.0 - boost
+        text_weight = max(0.0, min(1.0, 1.0 - audio_weight))
 
         fused_emotion = audio_pred.emotion
         fused_confidence = audio_pred.confidence * audio_weight

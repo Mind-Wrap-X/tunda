@@ -2,13 +2,16 @@
 
 import json
 import logging
+import re
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
 import threading
 
 from ..utils.config import config
+from .crypto import EncryptedJsonStore, crypto_available
+from .continuity import build_shareable_recap, clinician_trends
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +48,42 @@ class ConversationSession:
     user_preferences: Dict[str, Any]
     session_summary: str
     user_name: Optional[str] = None
+    persist_consent: Optional[bool] = None  # None = not yet chosen; True = save; False = discard
+    shareable_recap: str = ""
+    safety_flags: List[str] = field(default_factory=list)
+    tools_used: List[str] = field(default_factory=list)
+    clinician_share: bool = False
+
+
+_REMEMBER_CUES = re.compile(
+    r"\b(remember this|please remember|save this (session|conversation|chat)|keep this (session|conversation))\b",
+    re.IGNORECASE,
+)
+_FORGET_CUES = re.compile(
+    r"\b(forget this|don't (save|remember)|do not (save|remember)|keep this private|delete this session)\b",
+    re.IGNORECASE,
+)
 
 
 class ConversationMemory:
     """Manages conversation history and context."""
     
-    def __init__(self):
+    def __init__(self, conversation_file: Optional[str] = None, memory_key: Optional[bytes] = None):
         self.config = config.memory
         self.current_session: Optional[ConversationSession] = None
-        self.conversation_file = Path(self.config.conversation_file)
+        self.conversation_file = Path(conversation_file or self.config.conversation_file)
         self.lock = threading.Lock()
+        encrypt = bool(getattr(self.config, "encrypt", True))
+        require_consent = bool(getattr(self.config, "require_consent", True))
+        self.require_consent = require_consent
+        self.encrypt_enabled = encrypt
+        key_file = getattr(self.config, "key_file", "data/.memory_key")
+        self._store = EncryptedJsonStore(
+            self.conversation_file,
+            encrypt=encrypt,
+            key=memory_key,
+            key_file=key_file,
+        )
         
         # Ensure data directory exists
         self.conversation_file.parent.mkdir(parents=True, exist_ok=True)
@@ -88,12 +117,16 @@ class ConversationMemory:
             if self.current_session:
                 self.current_session.end_time = datetime.now().isoformat()
                 self.current_session.session_summary = self._generate_session_summary()
-                
-                # Save session
-                self.conversations.append(self.current_session)
-                self._save_conversations()
-                
-                logger.info(f"Ended conversation session: {self.current_session.session_id}")
+                self.current_session.shareable_recap = build_shareable_recap(self.current_session)
+                if self._should_persist_unlocked():
+                    self._upsert_session_unlocked(self.current_session)
+                    self._save_conversations()
+                    logger.info(f"Ended and stored conversation session: {self.current_session.session_id}")
+                else:
+                    logger.info(
+                        "Ended session %s without storing it (no persist consent)",
+                        self.current_session.session_id,
+                    )
                 self.current_session = None
     
     def add_conversation_turn(self, 
@@ -155,9 +188,57 @@ class ConversationMemory:
             if preferences:
                 self.current_session.user_preferences.update(preferences)
 
-            # Auto-save periodically
-            if len(self.current_session.turns) % 5 == 0:
+            self._apply_spoken_consent(user_text)
+
+            # Auto-save only after explicit persist consent
+            if self._should_persist_unlocked() and len(self.current_session.turns) % 5 == 0:
+                self._upsert_session_unlocked(self.current_session)
                 self._save_conversations()
+
+    def get_fusion_text_boost(self) -> float:
+        """Calibration 0–~0.45: higher means trust words over audio more."""
+        if not self.current_session:
+            return 0.0
+        return float(self.current_session.user_preferences.get("fusion_text_boost", 0.0))
+
+    def record_emotion_feedback(self, detected_match: bool, felt_emotion: Optional[str] = None):
+        """User calibration for emotion detection (e.g. thumbs on detected mood)."""
+        if not self.current_session:
+            self.start_new_session()
+        with self.lock:
+            prefs = self.current_session.user_preferences
+            boost = float(prefs.get("fusion_text_boost", 0.0))
+            if not detected_match:
+                boost = min(0.45, boost + 0.06)
+            else:
+                boost = max(0.0, boost - 0.03)
+            prefs["fusion_text_boost"] = boost
+            if felt_emotion:
+                prefs["last_stated_emotion"] = felt_emotion
+
+    def record_response_feedback(self, helpful: bool):
+        """Soft calibration from whether the last reply felt helpful."""
+        if not self.current_session:
+            self.start_new_session()
+        with self.lock:
+            prefs = self.current_session.user_preferences
+            boost = float(prefs.get("fusion_text_boost", 0.0))
+            if helpful:
+                prefs["fusion_text_boost"] = max(0.0, boost - 0.02)
+            else:
+                prefs["fusion_text_boost"] = min(0.45, boost + 0.03)
+
+    def set_response_mode_preference(self, mode: Optional[str]):
+        """Persist listen vs coach stance when user selects it in UI."""
+        if mode not in {None, "", "listen", "coach"}:
+            return
+        if not self.current_session:
+            self.start_new_session()
+        with self.lock:
+            if mode:
+                self.current_session.user_preferences["response_mode"] = mode
+            else:
+                self.current_session.user_preferences.pop("response_mode", None)
     
     def get_conversation_context(self, window_size: Optional[int] = None) -> List[Dict[str, str]]:
         """Get recent conversation context."""
@@ -168,6 +249,14 @@ class ConversationMemory:
         recent_turns = self.current_session.turns[-window_size:]
         
         context = []
+        recap = self.current_session.user_preferences.get("resume_recap")
+        if recap:
+            context.append({
+                "user": "(last visit recap)",
+                "assistant": recap,
+                "emotion": "neutral",
+                "timestamp": self.current_session.start_time,
+            })
         for turn in recent_turns:
             context.append({
                 'user': turn.user_text,
@@ -298,18 +387,160 @@ class ConversationMemory:
         
         return " ".join(summary_parts)
     
+    def may_persist(self) -> bool:
+        """True when this session may be written to disk / long-term memory."""
+        with self.lock:
+            return self._should_persist_unlocked()
+
+    def set_persist_consent(self, persist: bool) -> Dict[str, Any]:
+        """Record remember / forget for the live session."""
+        with self.lock:
+            if not self.current_session:
+                return {
+                    "require_consent": self.require_consent,
+                    "persist_consent": None,
+                    "encrypted": self.encrypt_enabled and crypto_available(),
+                    "stored": False,
+                    "error": "no_active_session",
+                }
+            self.current_session.persist_consent = bool(persist)
+            if persist:
+                self.current_session.shareable_recap = build_shareable_recap(self.current_session)
+                self._upsert_session_unlocked(self.current_session)
+                self._save_conversations()
+            else:
+                sid = self.current_session.session_id
+                self.conversations = [s for s in self.conversations if s.session_id != sid]
+                self._save_conversations()
+            return self.consent_status_unlocked()
+
+    def consent_status(self) -> Dict[str, Any]:
+        with self.lock:
+            return self.consent_status_unlocked()
+
+    def consent_status_unlocked(self) -> Dict[str, Any]:
+        persist = None
+        if self.current_session:
+            persist = self.current_session.persist_consent
+        return {
+            "require_consent": self.require_consent,
+            "persist_consent": persist,
+            "encrypted": self.encrypt_enabled and crypto_available(),
+            "stored": persist is True,
+            "clinician_share": bool(self.current_session.clinician_share) if self.current_session else False,
+        }
+
+    def record_safety_flag(self, tier: str) -> None:
+        if not self.current_session or not tier or tier == "none":
+            return
+        with self.lock:
+            if tier not in self.current_session.safety_flags:
+                self.current_session.safety_flags.append(tier)
+
+    def record_tool(self, name: str) -> None:
+        if not self.current_session or not name:
+            return
+        with self.lock:
+            if name not in self.current_session.tools_used:
+                self.current_session.tools_used.append(name)
+
+    def set_clinician_share(self, enabled: bool) -> Dict[str, Any]:
+        with self.lock:
+            if not self.current_session:
+                return {"clinician_share": False, "error": "no_active_session"}
+            self.current_session.clinician_share = bool(enabled)
+            if self._should_persist_unlocked():
+                self._upsert_session_unlocked(self.current_session)
+                self._save_conversations()
+            return {"clinician_share": self.current_session.clinician_share}
+
+    def shareable_recap(self, session: Optional[ConversationSession] = None) -> str:
+        target = session or self.current_session
+        if not target:
+            return ""
+        recap = build_shareable_recap(target)
+        target.shareable_recap = recap
+        return recap
+
+    def last_persisted_preview(self) -> Optional[Dict[str, Any]]:
+        stored = [s for s in self.conversations if s.persist_consent is True]
+        if not stored:
+            return None
+        last = stored[-1]
+        recap = last.shareable_recap or build_shareable_recap(last)
+        return {
+            "session_id": last.session_id,
+            "start_time": last.start_time,
+            "recap": recap,
+            "turns": len(last.turns),
+        }
+
+    def resume_last_session(self) -> Dict[str, Any]:
+        preview = self.last_persisted_preview()
+        if not preview or not self.current_session:
+            return {"resumed": False}
+        last = self.get_session_by_id(preview["session_id"])
+        with self.lock:
+            if last:
+                if last.user_name:
+                    self.current_session.user_name = last.user_name
+                self.current_session.user_preferences.update(last.user_preferences or {})
+                self.current_session.user_preferences["resume_recap"] = preview["recap"]
+                self.current_session.clinician_share = bool(last.clinician_share)
+            return {"resumed": True, "recap": preview["recap"]}
+
+    def clinician_trend_view(self) -> Dict[str, Any]:
+        opted = any(s.clinician_share and s.persist_consent is True for s in self.conversations)
+        if self.current_session and self.current_session.clinician_share:
+            opted = True
+        if not opted:
+            return {"enabled": False, "includes_transcripts": False, "days": []}
+        sessions = [s for s in self.conversations if s.persist_consent is True]
+        if self.current_session and self.current_session.clinician_share:
+            sessions = sessions + [self.current_session]
+        payload = clinician_trends(sessions)
+        payload["enabled"] = True
+        return payload
+
+    def _should_persist_unlocked(self) -> bool:
+        if not self.config.save_conversations:
+            return False
+        if not self.current_session:
+            return False
+        if not self.require_consent:
+            return self.current_session.persist_consent is not False
+        return self.current_session.persist_consent is True
+
+    def _upsert_session_unlocked(self, session: ConversationSession) -> None:
+        self.conversations = [s for s in self.conversations if s.session_id != session.session_id]
+        self.conversations.append(session)
+
+    def _apply_spoken_consent(self, text: str) -> None:
+        if not self.current_session or not text:
+            return
+        if _FORGET_CUES.search(text):
+            self.current_session.persist_consent = False
+            sid = self.current_session.session_id
+            self.conversations = [s for s in self.conversations if s.session_id != sid]
+            self._save_conversations()
+            return
+        if _REMEMBER_CUES.search(text):
+            self.current_session.persist_consent = True
+            self._upsert_session_unlocked(self.current_session)
+            self._save_conversations()
+
     def _load_conversations(self) -> List[ConversationSession]:
         """Load conversations from file."""
         if not self.conversation_file.exists():
             return []
         
         try:
-            with open(self.conversation_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            data = self._store.read()
+            if not isinstance(data, list):
+                return []
             
             conversations = []
             for session_data in data:
-                # Convert dictionaries back to dataclasses
                 turns = [ConversationTurn(**turn) for turn in session_data.get('turns', [])]
                 emotions = [EmotionHistory(**emotion) for emotion in session_data.get('emotion_history', [])]
                 
@@ -320,7 +551,13 @@ class ConversationMemory:
                     turns=turns,
                     emotion_history=emotions,
                     user_preferences=session_data.get('user_preferences', {}),
-                    session_summary=session_data.get('session_summary', '')
+                    session_summary=session_data.get('session_summary', ''),
+                    user_name=session_data.get('user_name'),
+                    persist_consent=session_data.get('persist_consent', True),
+                    shareable_recap=session_data.get('shareable_recap', ''),
+                    safety_flags=session_data.get('safety_flags', []) or [],
+                    tools_used=session_data.get('tools_used', []) or [],
+                    clinician_share=bool(session_data.get('clinician_share', False)),
                 )
                 conversations.append(session)
             
@@ -332,25 +569,19 @@ class ConversationMemory:
             return []
     
     def _save_conversations(self):
-        """Save conversations to file."""
+        """Save consented conversations to encrypted file."""
         if not self.config.save_conversations:
             return
         
         try:
-            # Convert to serializable format
             data = []
-            all_sessions = self.conversations.copy()
-            if self.current_session:
-                all_sessions.append(self.current_session)
-            
-            for session in all_sessions:
-                session_dict = asdict(session)
-                data.append(session_dict)
-            
-            # Save to file
-            with open(self.conversation_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            
+            for session in self.conversations:
+                if session.persist_consent is False:
+                    continue
+                if self.require_consent and session.persist_consent is not True:
+                    continue
+                data.append(asdict(session))
+            self._store.write(data)
             logger.debug(f"Saved {len(data)} conversation sessions")
             
         except Exception as e:
@@ -440,6 +671,11 @@ class ConversationMemory:
         language_match = re.search(r"(speak|respond) in ([a-z\s]+)", text_lower)
         if language_match:
             preferences["language"] = language_match.group(2).strip()
+
+        if re.search(r"\b(listen-?only|just reflect|don'?t (give )?advice)\b", text_lower):
+            preferences["response_mode"] = "listen"
+        elif re.search(r"\b(coaching mode|coping tips|practical (tips|steps))\b", text_lower):
+            preferences["response_mode"] = "coach"
 
         return preferences
 

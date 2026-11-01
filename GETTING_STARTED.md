@@ -1,15 +1,17 @@
-# Getting Started with Empathic Voice Companion
+# Getting Started with TUNDA
 
-Welcome to the **Empathic Voice Companion** - a unique AI system that detects emotional states from your voice and responds with genuine empathy using cutting-edge open-source tools.
+Welcome to **TUNDA** — a local **affect-aware voice companion**. It labels emotion (audio on desktop when configured; mostly text/keywords on the web), can reply via a local LLM, and includes crisis routing and grounding scripts.
 
-## 🌟 What Makes This Special
+It is **not** a therapist, not emergency care, and not a validated “empathic AI.” Supportive tone comes from prompts, templates, and safety scripts. See the [README](README.md) for honest scope.
 
-- **Real-time Emotion Detection**: Analyzes voice tone, pitch, and prosodic features to understand your emotional state
-- **Empathic Response Generation**: Uses advanced AI to craft responses that validate and support your feelings
-- **Multiple Interaction Modes**: Voice-to-voice, text-based web interface, and API access
-- **Privacy-First**: All processing happens locally - your conversations never leave your device
-- **Conversation Memory**: Tracks emotional patterns and adapts to your preferences over time
-- **Multiple Empathy Styles**: Supportive, reflective, solution-focused, and therapeutic approaches
+## What you get
+
+- **Affect labels**: Used to condition reply style and TTS — not clinical diagnosis
+- **Supportive replies**: Local LLM (Ollama) when online; Companion may use templates offline; care profiles refuse template improv if the LLM is down
+- **Multiple interfaces**: Desktop voice, web UI, and API
+- **Privacy-oriented**: Local processing by default; consent and wipe options for memory
+- **Conversation continuity**: Recaps and session memory (full RAG into replies is strongest on the desktop path)
+- **Response styles**: Supportive, reflective, solution-focused, and therapeutic-*inspired* prompts (not certified therapy)
 
 ## 🚀 Quick Start
 
@@ -244,4 +246,4 @@ This system demonstrates the power of combining multiple open-source AI tools to
 - Mobile app version
 - Voice cloning for personalized responses
 
-Enjoy exploring empathic AI! 🤖💙
+Build carefully — keep claims aligned with what the code actually does.
